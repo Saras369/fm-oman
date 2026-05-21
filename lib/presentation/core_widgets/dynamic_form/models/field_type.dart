@@ -1,0 +1,16 @@
+enum FieldType {
+  text,
+  textarea,
+  number,
+  email,
+  select,
+  radio,
+  checkbox,
+  multiselect,
+  date,
+  time,
+  year,
+  toggle,
+  rating,
+  file,
+}

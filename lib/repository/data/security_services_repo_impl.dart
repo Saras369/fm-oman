@@ -1,0 +1,227 @@
+import 'dart:developer';
+
+import 'package:code_setup/modules/data/models/financial_services/financial_services_stats_model.dart';
+import 'package:code_setup/modules/data/models/financial_services/financial_services_status_breakdown_model.dart';
+import 'package:code_setup/modules/data/models/financial_services/financial_services_trend_breakdown_model.dart';
+import 'package:code_setup/modules/data/models/security_services/security_request_model.dart';
+import 'package:code_setup/presentation/common_widgets/show_toast.dart';
+import 'package:code_setup/repository/data/attendance_repository_impl.dart';
+import 'package:code_setup/repository/domain/security_services_repo.dart';
+import 'package:code_setup/utils/api_end_points.dart';
+import 'package:code_setup/utils/app_extensions/app_extension.dart';
+import 'package:dio/dio.dart';
+
+class SecurityServicesRepoImpl implements SecurityServicesRepo {
+  @override
+  Future<void> createRequest(String slug, Map<String, dynamic> data) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.post(
+          ApiEndPoint.securityCreateRequest(slug),
+          data: data,
+        );
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            response.data != null) {
+          ShowFlutterToast().showFlutterToastSuccess(response.data['message']);
+          return;
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error creating security request $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<List<SecurityRequestItem>?> fetchMyRequests(String slug) {
+    return _fetchRequestList(ApiEndPoint.securityMyRequests(slug));
+  }
+
+  @override
+  Future<List<SecurityRequestItem>?> fetchApprovalRequests(String slug) {
+    return _fetchRequestList(ApiEndPoint.securityApprovalRequests(slug));
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchRequestDetails(String slug, int id) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(
+          ApiEndPoint.securityDetailsById(slug, id),
+        );
+        if (response.statusCode == 200 && response.data != null) {
+          final jsonMap = Map<String, dynamic>.from(response.data);
+          final rawData = jsonMap['data'];
+          if (rawData is Map<String, dynamic>) return rawData;
+          if (rawData is Map) return Map<String, dynamic>.from(rawData);
+          return jsonMap;
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching security request details $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  Future<List<SecurityRequestItem>?> _fetchRequestList(String endpoint) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(endpoint);
+        if (response.statusCode == 200 && response.data != null) {
+          return SecurityRequestModel.fromJson(
+            Map<String, dynamic>.from(response.data),
+          ).data;
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching security requests $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<FinancialServicesStatsData?> fetchKPIStats(String slug) {
+    return _fetchStats(ApiEndPoint.securityKPIStats(slug));
+  }
+
+  @override
+  Future<FinancialServicesStatsData?> fetchApprovalKPIStats(String slug) {
+    return _fetchStats(ApiEndPoint.securityApprovalKPIStats(slug));
+  }
+
+  Future<FinancialServicesStatsData?> _fetchStats(String endpoint) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(endpoint);
+        if (response.statusCode == 200 && response.data != null) {
+          final jsonMap = Map<String, dynamic>.from(response.data);
+          return FinancialServicesStatsModel.fromJson(jsonMap).data ??
+              FinancialServicesStatsData.fromJson(jsonMap['data'] ?? {});
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching security stats $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<FinancialStatusBreakdownData?> fetchStatusBreakdown(
+    String slug,
+    Map<String, dynamic> data,
+  ) {
+    return _fetchStatus(ApiEndPoint.securityStatusBreakdown(slug), data);
+  }
+
+  @override
+  Future<FinancialStatusBreakdownData?> fetchApprovalStatusBreakdown(
+    String slug,
+    Map<String, dynamic> data,
+  ) {
+    return _fetchStatus(
+      ApiEndPoint.securityApprovalStatusBreakdown(slug),
+      data,
+    );
+  }
+
+  Future<FinancialStatusBreakdownData?> _fetchStatus(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(endpoint, queryParameters: data);
+        if (response.statusCode == 200 && response.data != null) {
+          return FinancialStatusBreakdownModel.fromJson(
+            Map<String, dynamic>.from(response.data),
+          ).data;
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching security status breakdown $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<FinancialServicesTrendBreakdownData?> fetchMonthlyTrend(
+    String slug,
+    Map<String, dynamic> data,
+  ) {
+    return _fetchTrend(ApiEndPoint.securityMonthlyTrend(slug), data);
+  }
+
+  @override
+  Future<FinancialServicesTrendBreakdownData?> fetchApprovalMonthlyTrend(
+    String slug,
+    Map<String, dynamic> data,
+  ) {
+    return _fetchTrend(ApiEndPoint.securityApprovalMonthlyTrend(slug), data);
+  }
+
+  Future<FinancialServicesTrendBreakdownData?> _fetchTrend(
+    String endpoint,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(endpoint, queryParameters: data);
+        if (response.statusCode == 200 && response.data != null) {
+          return FinancialServicesTrendBreakdownModel.fromJson(
+            Map<String, dynamic>.from(response.data),
+          ).data;
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching security monthly trend $e');
+      throw ApiException(e.toString());
+    }
+  }
+}

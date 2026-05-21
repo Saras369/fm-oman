@@ -1,0 +1,16 @@
+
+
+{
+  "client_id": "de8765fe-2893-4413-90cf-c9e2e0ec83e2",
+  "authorization_user_agent": "DEFAULT",
+  "redirect_uri": "msauth://com.amnet.fm/%2ByTKwzXT6K1fl0HQWwIryOQSHEw%3D",
+  "account_mode": "SINGLE",
+  "broker_redirect_uri_registered": false,
+  "authorities": [
+    {
+      "type": "AAD",
+      "authority_url": "https://login.microsoftonline.com/a0d55139-70f6-49e4-b912-4d13d30fc66b"
+    }
+  ]
+}
+
