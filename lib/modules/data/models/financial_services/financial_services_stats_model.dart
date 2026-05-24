@@ -45,10 +45,17 @@ class FinancialServicesStatsData {
 
   factory FinancialServicesStatsData.fromJson(Map<String, dynamic> json) {
     return FinancialServicesStatsData(
-      total: _readStatsInt(json['total'] ?? json['total_requests']),
-      pending: _readStatsInt(json['pending']),
-      rejected: _readStatsInt(json['rejected']),
-      completed: _readStatsInt(json['completed'] ?? json['approved']),
+      total: _readStatsInt(
+        json['total'] ??
+            json['total_requests'] ??
+            json['total_assigned_to_me'] ??
+            json['total_approvals'],
+      ),
+      pending: _readStatsInt(json['pending'] ?? json['pending_my_approval']),
+      rejected: _readStatsInt(json['rejected'] ?? json['rejected_by_me']),
+      completed: _readStatsInt(
+        json['completed'] ?? json['approved'] ?? json['approved_by_me'],
+      ),
     );
   }
 

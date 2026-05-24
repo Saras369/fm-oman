@@ -22,36 +22,26 @@ enum _SecurityRequestType {
   employeeCard(
     slug: 'employee-card',
     title: 'Request for Employee Card',
-    serviceId: 48,
-    subServiceId: 166,
     icon: Icons.badge_outlined,
   ),
   retiredCard(
     slug: 'retired-card',
     title: 'Request for Retired Card',
-    serviceId: 48,
-    subServiceId: 51,
     icon: Icons.card_membership_outlined,
   ),
   gatePass(
     slug: 'gate-pass',
     title: 'Request for Gate Pass',
-    serviceId: 48,
-    subServiceId: 52,
     icon: Icons.meeting_room_outlined,
   );
 
   final String slug;
   final String title;
-  final int serviceId;
-  final int subServiceId;
   final IconData icon;
 
   const _SecurityRequestType({
     required this.slug,
     required this.title,
-    required this.serviceId,
-    required this.subServiceId,
     required this.icon,
   });
 }
@@ -179,11 +169,7 @@ class _SecurityController extends StateNotifier<_SecurityViewState> {
 
     return _SecurityRequestType.values.map((type) {
       return selected[type] ??
-          SubServices(
-            id: type.subServiceId,
-            serviceId: type.serviceId,
-            subServiceName: type.title,
-          );
+          SubServices(serviceId: params.serviceId, subServiceName: type.title);
     }).toList();
   }
 
@@ -205,11 +191,9 @@ class _SecurityController extends StateNotifier<_SecurityViewState> {
 
   String get selectedSubServiceTitle => selectedRequestType.title;
 
-  int get selectedServiceId =>
-      selectedSubService.serviceId ?? selectedRequestType.serviceId;
+  int get selectedServiceId => selectedSubService.serviceId ?? params.serviceId;
 
-  int get selectedSubServiceId =>
-      selectedSubService.id ?? selectedRequestType.subServiceId;
+  int get selectedSubServiceId => selectedSubService.id ?? 0;
 
   String get selectedSlug => selectedRequestType.slug;
 

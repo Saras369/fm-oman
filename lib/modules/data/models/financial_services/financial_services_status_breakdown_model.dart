@@ -54,10 +54,17 @@ class FinancialStatusBreakdownData {
   factory FinancialStatusBreakdownData.fromJson(Map<String, dynamic> json) {
     return FinancialStatusBreakdownData(
       timePeriod: json['time_period'] as String?,
-      totalRequests: _readStatusInt(json['total_requests'] ?? json['total']),
-      pending: _readStatusInt(json['pending']),
-      rejected: _readStatusInt(json['rejected']),
-      completed: _readStatusInt(json['approved'] ?? json['completed']),
+      totalRequests: _readStatusInt(
+        json['total_requests'] ??
+            json['total'] ??
+            json['total_assigned_to_me'] ??
+            json['total_approvals'],
+      ),
+      pending: _readStatusInt(json['pending'] ?? json['pending_my_approval']),
+      rejected: _readStatusInt(json['rejected'] ?? json['rejected_by_me']),
+      completed: _readStatusInt(
+        json['approved'] ?? json['completed'] ?? json['approved_by_me'],
+      ),
     );
   }
 
