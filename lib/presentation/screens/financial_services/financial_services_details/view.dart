@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:auto_route/annotations.dart';
 import 'package:code_setup/modules/data/core/storage/auth_cred.dart';
+import 'package:code_setup/repository/domain/auth_repository.dart';
+import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_request_details_model.dart';
 import 'package:code_setup/presentation/common_widgets/services_details/attachment_list_card.dart';
 import 'package:code_setup/presentation/common_widgets/services_details/chat_list_card.dart';
@@ -9,7 +14,7 @@ import 'package:code_setup/presentation/common_widgets/services_details/service_
 import 'package:code_setup/presentation/common_widgets/services_details/status_info_card.dart';
 import 'package:code_setup/presentation/core_widgets/app_bar/app_bar.dart';
 import 'package:code_setup/presentation/core_widgets/scaffold/scaffold.dart';
-import 'package:code_setup/presentation/screens/leave_request_details/view.dart';
+import 'package:code_setup/presentation/screens/financial_services/financial_dashboard_refresh.dart';
 import 'package:code_setup/repository/data/attendance_repository_impl.dart';
 import 'package:code_setup/repository/domain/financial_services_repo.dart';
 import 'package:code_setup/utils/app_extensions/app_extension.dart';
@@ -27,13 +32,12 @@ part 'controller.dart';
 @RoutePage()
 class FinancialServicesDetailsScreen extends ConsumerWidget {
   final int requestId;
-  late final _VSControllerParams params;
 
-  FinancialServicesDetailsScreen({super.key, required this.requestId}) {
-    params = _VSControllerParams(requestId: requestId);
-  }
+  const FinancialServicesDetailsScreen({super.key, required this.requestId});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final params = _VSControllerParams(requestId: requestId);
     final state = ref.watch(_vsProvider(params));
     final controller = ref.read(_vsProvider(params).notifier);
     final requestDetail = state.requestDetails.isNotEmpty
@@ -62,17 +66,14 @@ class FinancialServicesDetailsScreen extends ConsumerWidget {
                         children: [
                           Expanded(
                             flex: 1,
-                            child: EmployeeInfoPanel(
+                            child: _FinancialEmployeeInfoPanel(
                               requestId: requestId.toString(),
-                              isLeaveRequest: false,
-                              leaveType: null,
-                              contactNumber:
-                                  requestDetail?.contactNumber ?? '',
+                              contactNumber: requestDetail?.contactNumber ?? '',
                             ),
                           ),
                           Expanded(
                             flex: 3,
-                            child: TabViewFinance(
+                            child: _TabViewFinance(
                               state: state,
                               stateController: controller,
                             ),
@@ -83,15 +84,12 @@ class FinancialServicesDetailsScreen extends ConsumerWidget {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        TabViewFinance(
+                        _TabViewFinance(
                           state: state,
                           stateController: controller,
-                          mobileMiddleWidget: EmployeeInfoPanel(
+                          mobileMiddleWidget: _FinancialEmployeeInfoPanel(
                             requestId: requestId.toString(),
-                            isLeaveRequest: false,
-                            leaveType: null,
-                            contactNumber:
-                                requestDetail?.contactNumber ?? '',
+                            contactNumber: requestDetail?.contactNumber ?? '',
                           ),
                         ),
                       ],
@@ -100,6 +98,115 @@ class FinancialServicesDetailsScreen extends ConsumerWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _FinancialEmployeeInfoPanel extends StatelessWidget {
+  final String requestId;
+  final String contactNumber;
+
+  const _FinancialEmployeeInfoPanel({
+    required this.requestId,
+    required this.contactNumber,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final currentTheme = KAppX.globalProvider
+        .read(KAppX.theme.current)
+        .themeBox;
+    final user = KAppX.globalProvider.read(userProvider);
+
+    Widget infoRow(String label, IconData icon, String value) => Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: currentTheme.fontSizes.s13,
+              color: const Color(0xFF757A90),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(icon, color: const Color(0xFF23272F), size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF3B4260),
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return Card(
+      color: currentTheme.colors.onPrimary,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFECECF0), width: 1),
+      ),
+      margin: EdgeInsets.zero,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          childrenPadding: const EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: 16,
+          ),
+          leading: const Icon(
+            Icons.people_alt_outlined,
+            color: Color(0xFF23272F),
+            size: 22,
+          ),
+          title: Text(
+            'Employee Information',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: currentTheme.fontSizes.s16,
+              color: const Color(0xFF23272F),
+            ),
+          ),
+          children: [
+            const Divider(color: Color(0xFFECECF0), height: 1, thickness: 1),
+            const SizedBox(height: 16),
+            infoRow('Request ID', Icons.badge_outlined, requestId),
+            infoRow(
+              'Employee ID',
+              Icons.person_outline,
+              user?.employeeId ?? '',
+            ),
+            infoRow(
+              'Job Title / Designation',
+              Icons.work_outline,
+              user?.designationName ?? '',
+            ),
+            infoRow('Email Address', Icons.email_outlined, user?.email ?? ''),
+            infoRow(
+              'Department',
+              Icons.business_outlined,
+              user?.departmentName ?? '',
+            ),
+            infoRow('Contact Number', Icons.phone_outlined, contactNumber),
+          ],
+        ),
+      ),
     );
   }
 }

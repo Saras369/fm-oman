@@ -1,3 +1,4 @@
+import 'package:code_setup/modules/data/models/financial_services/financial_services_request_details_model.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_stats_model.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_status_breakdown_model.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_trend_breakdown_model.dart';
@@ -10,7 +11,25 @@ abstract class SecurityServicesRepo {
   Future<void> createRequest(String slug, Map<String, dynamic> data);
   Future<List<SecurityRequestItem>?> fetchMyRequests(String slug);
   Future<List<SecurityRequestItem>?> fetchApprovalRequests(String slug);
-  Future<Map<String, dynamic>?> fetchRequestDetails(String slug, int id);
+  Future<FinancialServiceRequestDetailsItem?> fetchRequestDetails(
+    String slug,
+    int id,
+  );
+  Future<void> addCommentInSecurityRequest(
+    String slug,
+    int id,
+    Map<String, dynamic> data,
+  );
+  Future<void> approveSecurityRequest(
+    String slug,
+    int id,
+    Map<String, dynamic> data,
+  );
+  Future<void> rejectSecurityRequest(
+    String slug,
+    int id,
+    Map<String, dynamic> data,
+  );
   Future<FinancialServicesStatsData?> fetchKPIStats(String slug);
   Future<FinancialServicesStatsData?> fetchApprovalKPIStats(String slug);
   Future<FinancialStatusBreakdownData?> fetchStatusBreakdown(

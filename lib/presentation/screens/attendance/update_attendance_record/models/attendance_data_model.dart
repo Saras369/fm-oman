@@ -163,28 +163,51 @@ class AttendanceData {
     this.totalDays,
   });
 
+  static List<dynamic>? _asList(dynamic v) {
+    if (v is List) return v;
+    return null;
+  }
+
+  static Map<String, dynamic>? _asMap(dynamic v) {
+    if (v is Map<String, dynamic>) return v;
+    if (v is Map) return Map<String, dynamic>.from(v);
+    return null;
+  }
+
   factory AttendanceData.fromJson(Map<String, dynamic> json) {
+    final shiftList = _asList(json['shift_details']);
+    final recordList = _asList(json['attendance_records']);
     return AttendanceData(
-      shiftDetails: json['shift_details'] != null
-          ? (json['shift_details'] as List)
-                .map((e) => ShiftDetails.fromJson(e))
-                .toList()
-          : null,
+      shiftDetails: shiftList
+          ?.map((e) {
+            final m = _asMap(e);
+            return m == null ? null : ShiftDetails.fromJson(m);
+          })
+          .whereType<ShiftDetails>()
+          .toList(),
       actualShiftWorkingHours: (json['actual_shift_working_hours'] as num?)
           ?.toDouble(),
       employeeAvgWorkingHours: (json['employee_avg_working_hours'] as num?)
           ?.toDouble(),
-      lateCheckinCount: json['late_checkin_count'] as int?,
-      earlyCheckoutCount: json['early_checkout_count'] as int?,
-      attendanceRecords: json['attendance_records'] != null
-          ? (json['attendance_records'] as List)
-                .map((e) => AttendanceRecord.fromJson(e))
-                .toList()
-          : null,
+      lateCheckinCount: json['late_checkin_count'] is int
+          ? json['late_checkin_count'] as int
+          : int.tryParse('${json['late_checkin_count']}'),
+      earlyCheckoutCount: json['early_checkout_count'] is int
+          ? json['early_checkout_count'] as int
+          : int.tryParse('${json['early_checkout_count']}'),
+      attendanceRecords: recordList
+          ?.map((e) {
+            final m = _asMap(e);
+            return m == null ? null : AttendanceRecord.fromJson(m);
+          })
+          .whereType<AttendanceRecord>()
+          .toList(),
       month: json['month'] as String?,
       startDate: json['start_date'] as String?,
       endDate: json['end_date'] as String?,
-      totalDays: json['total_days'] as int?,
+      totalDays: json['total_days'] is int
+          ? json['total_days'] as int
+          : int.tryParse('${json['total_days']}'),
     );
   }
 

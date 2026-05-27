@@ -65,7 +65,9 @@ class GovtLoginPage extends ConsumerWidget {
     final currentTheme = KAppX.globalProvider
         .read(KAppX.theme.current)
         .themeBox;
-    final stateController = ref.watch(_vsProvider.notifier);
+    final state = ref.watch(_vsProvider);
+    final stateController = ref.read(_vsProvider.notifier);
+    final isLoading = state.isLoading;
     return KScaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -174,6 +176,10 @@ class GovtLoginPage extends ConsumerWidget {
                     padding: EdgeInsets.all(20),
                     child: Column(
                       children: [
+                        if (isLoading) ...[
+                          const LinearProgressIndicator(),
+                          const SizedBox(height: 12),
+                        ],
                         Text(
                           "Login",
                           style: theme.textTheme.titleLarge?.copyWith(
@@ -202,11 +208,7 @@ class GovtLoginPage extends ConsumerWidget {
                                 side: BorderSide(color: Colors.black26),
                               ),
                             ),
-                            onPressed: () {
-                              // Microsoft SSO callback
-                              // KAppX.router.push(KBottomNavigatorRoute());
-                              stateController.signIn();
-                            },
+                            onPressed: isLoading ? null : stateController.signIn,
                             icon: Icon(Icons.lock, color: Colors.black),
                             label: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -221,6 +223,68 @@ class GovtLoginPage extends ConsumerWidget {
                                 SizedBox(width: 8),
                                 Icon(Icons.arrow_forward, color: Colors.black),
                               ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: Colors.grey[400])),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'OR',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: Colors.grey[400])),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Sign in with token (optional)',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Paste a Microsoft access token or app auth token',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        KTextField(
+                          controller: stateController.tokenController,
+                          hintText: 'Paste token here',
+                          maxLines: 4,
+                          isMaxLines: true,
+                          minLines: 3,
+                          enabled: !isLoading,
+                          keyboardType: TextInputType.multiline,
+                        ),
+                        SizedBox(height: 12),
+                        SizedBox(
+                          height: 48,
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: currentTheme.colors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: isLoading
+                                ? null
+                                : stateController.signInWithPastedToken,
+                            child: const Text(
+                              'Continue with token',
+                              style: TextStyle(fontWeight: FontWeight.w600),
                             ),
                           ),
                         ),

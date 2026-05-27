@@ -11,7 +11,7 @@ abstract class AuthRepository {
   Future<Map<String, dynamic>?> getAuthTokenWithSSOAccessToken(
     String accessToken,
   );
-  Future<UserData?> getUserDataById();
+  Future<UserData?> getUserDataById({int? userId});
   Future<FileUploadDataModel?> uploadFile(FormData formData);
   Future<List<BehalfOfUserItem>?> fetchBehalfOfUsers(
     Map<String, dynamic> queryParams,

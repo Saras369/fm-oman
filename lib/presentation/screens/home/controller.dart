@@ -1,5 +1,16 @@
 part of 'view.dart';
 
+final userProfileDetailsProvider = FutureProvider<UserData?>((ref) async {
+  final userId = ref.watch(userProvider.select((user) => user?.userId));
+  if (userId == null || userId == 0) return null;
+
+  try {
+    return await AuthRepository().getUserDataById(userId: userId);
+  } catch (_) {
+    return null;
+  }
+});
+
 class BottomNavigatorVSControllerParams extends Equatable {
   final BuildContext context;
   BottomNavigatorVSControllerParams({required this.context});

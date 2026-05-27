@@ -35,6 +35,9 @@ class UserData {
   final String? bloodGroup;
   final String? nationalId;
   final String? mobile;
+  final String? officeNumber;
+  final String? faxNumber;
+  final String? category;
   final Department? department;
   final Section? section;
   final int? grade;
@@ -63,6 +66,8 @@ class UserData {
   final String? updatedAt;
   final Position? position;
   final Manager? manager;
+  final EmploymentDetails? employmentDetails;
+  final DiplomaticTitleDetails? diplomaticTitleDetails;
 
   UserData({
     this.createdBy,
@@ -83,6 +88,9 @@ class UserData {
     this.bloodGroup,
     this.nationalId,
     this.mobile,
+    this.officeNumber,
+    this.faxNumber,
+    this.category,
     this.department,
     this.section,
     this.grade,
@@ -111,7 +119,27 @@ class UserData {
     this.updatedAt,
     this.position,
     this.manager,
+    this.employmentDetails,
+    this.diplomaticTitleDetails,
   });
+
+  String? get displayPhone =>
+      _firstNonEmpty([mobile, officeNumber, extensionNumber]);
+
+  String? get displayJobTitle => _firstNonEmpty([
+    employmentDetails?.jobTitle,
+    position?.name,
+    diplomaticTitleDetails?.title,
+  ]);
+
+  String? get displayLocation => _firstNonEmpty([location]);
+
+  static String? _firstNonEmpty(List<String?> values) {
+    for (final value in values) {
+      if (value != null && value.trim().isNotEmpty) return value.trim();
+    }
+    return null;
+  }
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
@@ -132,7 +160,10 @@ class UserData {
       email: json['email'] as String?,
       bloodGroup: json['blood_group'] as String?,
       nationalId: json['national_id'] as String?,
-      mobile: json['mobile'] as String?,
+      mobile: json['mobile']?.toString(),
+      officeNumber: json['office_number']?.toString(),
+      faxNumber: json['fax_number']?.toString(),
+      category: json['category'] as String?,
       department: json['department'] != null
           ? Department.fromJson(json['department'])
           : null,
@@ -169,6 +200,12 @@ class UserData {
       manager: json['manager'] != null
           ? Manager.fromJson(json['manager'])
           : null,
+      employmentDetails: json['employment_details'] != null
+          ? EmploymentDetails.fromJson(json['employment_details'])
+          : null,
+      diplomaticTitleDetails: json['diplomatic_title_details'] != null
+          ? DiplomaticTitleDetails.fromJson(json['diplomatic_title_details'])
+          : null,
     );
   }
 
@@ -192,6 +229,9 @@ class UserData {
       'blood_group': bloodGroup,
       'national_id': nationalId,
       'mobile': mobile,
+      'office_number': officeNumber,
+      'fax_number': faxNumber,
+      'category': category,
       'department': department?.toJson(),
       'section': section?.toJson(),
       'grade': grade,
@@ -220,8 +260,54 @@ class UserData {
       'updated_at': updatedAt,
       'position': position?.toJson(),
       'manager': manager?.toJson(),
+      'employment_details': employmentDetails?.toJson(),
+      'diplomatic_title_details': diplomaticTitleDetails?.toJson(),
     };
   }
+}
+
+class EmploymentDetails {
+  final int? id;
+  final int? userId;
+  final String? jobTitle;
+
+  EmploymentDetails({this.id, this.userId, this.jobTitle});
+
+  factory EmploymentDetails.fromJson(Map<String, dynamic> json) {
+    return EmploymentDetails(
+      id: json['id'] as int?,
+      userId: json['user_id'] as int?,
+      jobTitle: json['job_title'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'user_id': userId,
+    'job_title': jobTitle,
+  };
+}
+
+class DiplomaticTitleDetails {
+  final int? id;
+  final String? title;
+  final String? category;
+
+  DiplomaticTitleDetails({this.id, this.title, this.category});
+
+  factory DiplomaticTitleDetails.fromJson(Map<String, dynamic> json) {
+    return DiplomaticTitleDetails(
+      id: json['id'] as int?,
+      title: json['title'] as String?,
+      category: json['category'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'category': category,
+  };
 }
 
 // Nested models

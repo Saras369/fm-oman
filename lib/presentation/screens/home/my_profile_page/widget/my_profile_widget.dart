@@ -7,6 +7,21 @@ class MyProfileWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentTheme = ref.read(KAppX.theme.current).themeBox;
+    final user = ref.watch(userProvider);
+    final profile = ref.watch(userProfileDetailsProvider).valueOrNull;
+
+    final displayName = _displayValue(
+      profile?.employeeName ?? user?.employeeName,
+    );
+    final email = _displayValue(profile?.email ?? user?.email);
+    final phone = _displayValue(
+      profile?.displayPhone,
+    );
+    final location = _displayValue(profile?.displayLocation);
+    final jobTitle = _displayValue(
+      profile?.displayJobTitle ?? user?.designationName,
+    );
+
     return Card(
       color: currentTheme.colors.onPrimary,
       margin: const EdgeInsets.all(14),
@@ -85,7 +100,7 @@ class MyProfileWidget extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Husam-Uddin',
+              displayName,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: currentTheme.fontSizes.s14,
@@ -95,47 +110,51 @@ class MyProfileWidget extends ConsumerWidget {
             SizedBox(height: 10.toAutoScaledHeight),
 
             // Info rows
-            const _InfoRow(icon: Icons.email, text: 'husamuddin@Company.com'),
+            _InfoRow(icon: Icons.email, text: email),
             const SizedBox(height: 13),
-            const _InfoRow(icon: Icons.phone, text: '++XXX-XXX-XXX-XX'),
+            _InfoRow(icon: Icons.phone, text: phone),
             const SizedBox(height: 13),
-            const _InfoRow(icon: Icons.location_on, text: 'Salalah, Oman'),
+            _InfoRow(icon: Icons.location_on, text: location),
             const SizedBox(height: 13),
-            const _InfoRow(icon: Icons.business, text: 'Software Engineer'),
+            _InfoRow(icon: Icons.business, text: jobTitle),
             const SizedBox(height: 24),
-            // View Profile button
-            if (!isProfileDetail)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: Icon(Icons.arrow_forward, color: Color(0xFF1A2542)),
-                  label: Text(
-                    'View Profile',
-                    style: TextStyle(
-                      color: Color(0xFF1A2542),
-                      fontWeight: FontWeight.w600,
-                      fontSize: currentTheme.fontSizes.s16,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: Colors.white,
-                    side: BorderSide(color: Color(0xFFCED8ED), width: 1.2),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                  onPressed: () {
-                    // TODO: add navigation logic
-                    KAppX.router.push(ProfileDetailsRoute());
-                  },
-                ),
-              ),
+            // View Profile button — disabled for now
+            // if (!isProfileDetail)
+            //   SizedBox(
+            //     width: double.infinity,
+            //     child: ElevatedButton.icon(
+            //       icon: Icon(Icons.arrow_forward, color: Color(0xFF1A2542)),
+            //       label: Text(
+            //         'View Profile',
+            //         style: TextStyle(
+            //           color: Color(0xFF1A2542),
+            //           fontWeight: FontWeight.w600,
+            //           fontSize: currentTheme.fontSizes.s16,
+            //         ),
+            //       ),
+            //       style: ElevatedButton.styleFrom(
+            //         elevation: 0,
+            //         backgroundColor: Colors.white,
+            //         side: BorderSide(color: Color(0xFFCED8ED), width: 1.2),
+            //         shape: RoundedRectangleBorder(
+            //           borderRadius: BorderRadius.circular(8),
+            //         ),
+            //         padding: const EdgeInsets.symmetric(vertical: 13),
+            //       ),
+            //       onPressed: () {
+            //         KAppX.router.push(ProfileDetailsRoute());
+            //       },
+            //     ),
+            //   ),
           ],
         ),
       ),
     );
+  }
+
+  static String _displayValue(String? value) {
+    if (value == null || value.trim().isEmpty) return '—';
+    return value.trim();
   }
 }
 

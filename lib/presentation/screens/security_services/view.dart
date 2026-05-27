@@ -21,6 +21,7 @@ import 'package:code_setup/presentation/core_widgets/input_field/text_field.dart
 import 'package:code_setup/presentation/core_widgets/list_tile_divider.dart';
 import 'package:code_setup/presentation/core_widgets/scaffold/scaffold.dart';
 import 'package:code_setup/presentation/screens/leave_request/view.dart';
+import 'package:code_setup/presentation/screens/security_services/security_dashboard_refresh.dart';
 import 'package:code_setup/repository/data/attendance_repository_impl.dart';
 import 'package:code_setup/repository/domain/security_services_repo.dart';
 import 'package:code_setup/utils/app_extensions/app_extension.dart';
@@ -69,6 +70,13 @@ class _SecurityServicesScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(_securityProvider(params));
     final controller = ref.read(_securityProvider(params).notifier);
+
+    ref.listen<int>(securityDashboardRefreshTriggerProvider, (previous, next) {
+      if (previous != next) {
+        controller.switchToMyRequestsTabAndRefresh();
+      }
+    });
+
     final currentTheme = KAppX.globalProvider
         .read(KAppX.theme.current)
         .themeBox;

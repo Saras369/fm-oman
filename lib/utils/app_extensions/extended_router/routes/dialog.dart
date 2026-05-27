@@ -3,6 +3,15 @@ part of '../../app_extension.dart';
 class _DialogRoute {
   _DialogRoute._();
 
+  /// Closes the top overlay route opened via [showKDialog].
+  /// Uses the app router navigator key (not AutoRoute page pop).
+  void closeKDialog<T>([T? result]) {
+    final navigator = KAppX.router.navigatorKey.currentState;
+    if (navigator != null && navigator.canPop()) {
+      navigator.pop<T>(result);
+    }
+  }
+
   Future<T?> showKDialog<T>({
     BuildContext? context,
     required Widget Function(BuildContext) builder,

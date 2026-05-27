@@ -17,17 +17,20 @@ class _DrawerMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = const [
-      DrawerItemData(index: 0, icon: Icons.home, label: 'Attendance & Info'),
+      DrawerItemData(
+        index: 0,
+        icon: Icons.access_time,
+        label: 'Attendance & Info',
+      ),
       DrawerItemData(
         index: 1,
-        icon: Icons.design_services,
-        label: 'Leave Portal',
+        icon: Icons.assignment_outlined,
+        label: 'Leave Portal (Request for Leave)',
       ),
-      DrawerItemData(index: 2, icon: Icons.link, label: 'Holidays'),
       DrawerItemData(
-        index: 3,
-        icon: Icons.settings,
-        label: 'Request for Early Checkout',
+        index: 2,
+        icon: Icons.nightlight_round,
+        label: 'Request for stay after working hours',
       ),
     ];
     final currentTheme = KAppX.globalProvider
@@ -52,7 +55,7 @@ class _DrawerMenu extends StatelessWidget {
               Icon(Icons.people_alt_outlined),
               16.toHorizontalSizedBox,
               Text(
-                'Hr Services',
+                'HR Services',
                 style: TextStyle(
                   fontSize: currentTheme.fontSizes.s16,
                   fontWeight: currentTheme.fontWeights.wBolder,

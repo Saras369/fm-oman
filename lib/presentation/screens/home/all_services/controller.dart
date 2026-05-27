@@ -205,7 +205,10 @@ class _VSController extends StateNotifier<_ViewState> {
   void onPressSubService(List<SubServices> subServices, int serviceId) {
     if (serviceId == 46) {
       KAppX.router.push(
-        LeaveRequestRoute(serviceId: serviceId, subServicesList: subServices),
+        KBottomNavigatorRoute(
+          serviceId: serviceId,
+          subServicesList: subServices,
+        ),
       );
     } else if (serviceId == 47) {
       KAppX.router.push(

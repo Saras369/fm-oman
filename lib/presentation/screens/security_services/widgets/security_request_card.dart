@@ -20,11 +20,18 @@ class _SecurityRequestCard extends ConsumerStatefulWidget {
 }
 
 class _SecurityRequestCardState extends ConsumerState<_SecurityRequestCard> {
-  int selectedTab = 0;
+  int get selectedTab => widget.state.requestListTabIndex;
+
+  @override
+  void didUpdateWidget(covariant _SecurityRequestCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.requestListTabIndex != widget.state.requestListTabIndex) {
+      setState(() {});
+    }
+  }
 
   void onTabChange(int index) {
-    setState(() => selectedTab = index);
-    widget.stateController.toggleViewMode(index == 1);
+    widget.stateController.setRequestListTab(index);
   }
 
   @override

@@ -19,10 +19,15 @@ class LeaveBalanceData {
 class LeaveBalancesCard extends StatelessWidget {
   final List<LeaveBalanceData> balances;
   final int? year;
+  final List<int>? yearOptions;
+  final ValueChanged<int?>? onYearChanged;
+
   const LeaveBalancesCard({
     super.key,
     required this.balances,
     this.year,
+    this.yearOptions,
+    this.onYearChanged,
   });
 
   @override
@@ -47,21 +52,32 @@ class LeaveBalancesCard extends StatelessWidget {
             _buildHeader(context, currentYear),
             const SizedBox(height: 12),
             Divider(thickness: 1, color: Colors.grey[300]),
-            ...balances
-                .map(
-                  (data) => Column(
-                    children: [
-                      LeaveBalanceTile(data: data),
-                      if (data != balances.last)
-                        Divider(
-                          thickness: 1,
-                          color: Colors.grey[200],
-                          height: 28,
-                        ),
-                    ],
+            if (balances.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  'No leave balances available',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey,
                   ),
-                )
-                .toList(),
+                ),
+              )
+            else
+              ...balances
+                  .map(
+                    (data) => Column(
+                      children: [
+                        LeaveBalanceTile(data: data),
+                        if (data != balances.last)
+                          Divider(
+                            thickness: 1,
+                            color: Colors.grey[200],
+                            height: 28,
+                          ),
+                      ],
+                    ),
+                  )
+                  .toList(),
           ],
         ),
       ),
@@ -91,7 +107,11 @@ class LeaveBalancesCard extends StatelessWidget {
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
         const Spacer(),
-        _YearDropdown(label: currentYear.toString()),
+        _LeaveBalanceYearDropdown(
+          label: currentYear.toString(),
+          yearOptions: yearOptions,
+          onYearChanged: onYearChanged,
+        ),
       ],
     );
   }
@@ -165,6 +185,49 @@ class LeaveBalanceTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LeaveBalanceYearDropdown extends StatelessWidget {
+  final String label;
+  final List<int>? yearOptions;
+  final ValueChanged<int?>? onYearChanged;
+
+  const _LeaveBalanceYearDropdown({
+    required this.label,
+    this.yearOptions,
+    this.onYearChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final options = yearOptions ?? [DateTime.now().year];
+
+    return PopupMenuButton<int>(
+      onSelected: onYearChanged,
+      itemBuilder: (context) => options
+          .map(
+            (year) => PopupMenuItem<int>(
+              value: year,
+              child: Text(year.toString()),
+            ),
+          )
+          .toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+        ),
+        child: Row(
+          children: [
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+            const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+          ],
+        ),
       ),
     );
   }

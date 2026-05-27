@@ -21,8 +21,17 @@ class AttendanceRequestsCard extends ConsumerStatefulWidget {
 
 class _AttendanceRequestsCardState
     extends ConsumerState<AttendanceRequestsCard> {
-  int selectedTab = 0; // 0=My Requests, 1=Action Items
   int currentPage = 1;
+
+  int get selectedTab => widget.state.requestListTabIndex;
+
+  @override
+  void didUpdateWidget(covariant AttendanceRequestsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.requestListTabIndex != widget.state.requestListTabIndex) {
+      currentPage = 1;
+    }
+  }
 
   List<AttendanceRequestItem> get currentItems {
     int pageSize = selectedTab == 0
@@ -30,6 +39,7 @@ class _AttendanceRequestsCardState
         : widget.actionItems.length;
 
     final list = selectedTab == 0 ? widget.myRequests : widget.actionItems;
+    if (pageSize == 0) return [];
     int start = (currentPage - 1) * pageSize;
     return list.skip(start).take(pageSize).toList();
   }
@@ -42,14 +52,15 @@ class _AttendanceRequestsCardState
     final count = selectedTab == 0
         ? widget.myRequests.length
         : widget.actionItems.length;
+    if (pageSize == 0) return 1;
     return (count / pageSize).ceil();
   }
 
   void onTabChange(int idx) {
     setState(() {
-      selectedTab = idx;
       currentPage = 1;
     });
+    widget.stateController.setRequestListTab(idx);
   }
 
   @override
@@ -75,14 +86,26 @@ class _AttendanceRequestsCardState
                 _buildTabs(),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: ListView.separated(
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (_, index) => _AttendanceRequestCardItem(
-                      request: items[index],
-                      stateController: widget.stateController,
-                    ),
-                  ),
+                  child: items.isEmpty
+                      ? Center(
+                          child: Text(
+                            selectedTab == 0
+                                ? 'No requests found'
+                                : 'No action items found',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: currentTheme.fontSizes.s14,
+                            ),
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (_, index) => _AttendanceRequestCardItem(
+                            request: items[index],
+                            stateController: widget.stateController,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -117,7 +140,6 @@ class _AttendanceRequestsCardState
                   insetPadding: EdgeInsets.symmetric(
                     horizontal: 20.toAutoScaledWidth,
                   ),
-
                   builder: (context) {
                     return UpdateAttendanceRequestForm();
                   },
@@ -129,11 +151,10 @@ class _AttendanceRequestsCardState
           ],
         ),
         10.toVerticalSizedBox,
-        // _SearchBar(),
         KSearchBar(
           autofocus: false,
-          onChanged: (value) {},
-          hintText: 'Search by Request Name or Request ID',
+          onChanged: stateController.onSearchChanged,
+          hintText: 'Search by Approver or Request ID',
         ),
       ],
     );
@@ -176,7 +197,16 @@ class _AttendanceRequestCardItem extends StatelessWidget {
         .themeBox;
 
     final textTheme = Theme.of(context).textTheme;
-    // In your app:
+    final requestName =
+        request.subService?.subServiceName ??
+        request.reason ??
+        'Update Attendance Request';
+    final requestDate = request.createdAt?.formattedDate ?? '';
+    final approverName = attendanceApproverDisplayName(request);
+    final rawStatus = request.status ??
+        request.approvalDetails?.lastOrNull?.approvalStatus ??
+        '';
+    final status = rawStatus.trim().toLowerCase();
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -189,29 +219,25 @@ class _AttendanceRequestCardItem extends StatelessWidget {
           children: [
             _buildRow('Request ID:', '${request.id ?? 0}', textTheme),
             const SizedBox(height: 6),
-            _buildRow('Request Name:', 'Update Attendance Request', textTheme),
+            _buildRow('Request Name:', requestName, textTheme),
             const SizedBox(height: 6),
             Row(
               children: [
                 Expanded(
-                  child: _buildRow(
-                    'Date:',
-                    request.updatedAt?.formattedDate.toString() ?? '',
-                    textTheme,
-                  ),
+                  child: _buildRow('Date:', requestDate, textTheme),
                 ),
-                Expanded(child: _buildRow('Approver:', 'Unknown', textTheme)),
+                Expanded(
+                  child: _buildRow('Approver:', approverName, textTheme),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                StatusBadgeMobile(
-                  status: request.approvalDetails?.last.approvalStatus ?? '',
-                ),
+                StatusBadgeMobile(status: status),
                 const Spacer(),
                 IconButton(
-                  icon: Icon(Icons.open_in_new),
+                  icon: const Icon(Icons.open_in_new),
                   color: const Color(0xFF23272F),
                   onPressed: () {
                     stateController.onPressRequestDetails(request.id ?? 0);
@@ -239,7 +265,7 @@ class _AttendanceRequestCardItem extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label ',
-            style: TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           TextSpan(text: value),
         ],

@@ -78,6 +78,7 @@ class _SecurityViewState {
   final FinancialStatusBreakdownData approvalStatusBreakdownData;
   final List<SecurityRequestItem> myRequests;
   final List<SecurityRequestItem> actionItems;
+  final int requestListTabIndex;
 
   _SecurityViewState({
     required this.isLoading,
@@ -93,6 +94,7 @@ class _SecurityViewState {
     required this.approvalStatusBreakdownData,
     required this.myRequests,
     required this.actionItems,
+    required this.requestListTabIndex,
   });
 
   factory _SecurityViewState.init() {
@@ -110,6 +112,7 @@ class _SecurityViewState {
       approvalStatusBreakdownData: FinancialStatusBreakdownData(),
       myRequests: [],
       actionItems: [],
+      requestListTabIndex: 0,
     );
   }
 
@@ -127,6 +130,7 @@ class _SecurityViewState {
     FinancialStatusBreakdownData? approvalStatusBreakdownData,
     List<SecurityRequestItem>? myRequests,
     List<SecurityRequestItem>? actionItems,
+    int? requestListTabIndex,
   }) {
     return _SecurityViewState(
       isLoading: isLoading ?? this.isLoading,
@@ -145,6 +149,7 @@ class _SecurityViewState {
           approvalStatusBreakdownData ?? this.approvalStatusBreakdownData,
       myRequests: myRequests ?? this.myRequests,
       actionItems: actionItems ?? this.actionItems,
+      requestListTabIndex: requestListTabIndex ?? this.requestListTabIndex,
     );
   }
 }
@@ -227,8 +232,23 @@ class _SecurityController extends StateNotifier<_SecurityViewState> {
     fetchMyRequests();
   }
 
+  void setRequestListTab(int index) {
+    toggleViewMode(index == 1);
+  }
+
+  void switchToMyRequestsTabAndRefresh() {
+    state = state.copyWith(isApproverView: false, requestListTabIndex: 0);
+    fetchStats();
+    fetchStatusBreakDownData();
+    fetchTrendData();
+    fetchMyRequests();
+  }
+
   void toggleViewMode(bool isApprover) {
-    state = state.copyWith(isApproverView: isApprover);
+    state = state.copyWith(
+      isApproverView: isApprover,
+      requestListTabIndex: isApprover ? 1 : 0,
+    );
     if (isApprover) {
       fetchApproverStats();
       fetchApproverStatusBreakDownData();
@@ -275,6 +295,7 @@ class _SecurityController extends StateNotifier<_SecurityViewState> {
         requestId: request.id ?? 0,
         slug: selectedSlug,
         title: request.requestName ?? selectedSubServiceTitle,
+        isFromActionItems: state.requestListTabIndex == 1,
       ),
     );
   }

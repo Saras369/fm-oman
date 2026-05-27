@@ -52,9 +52,9 @@ class ApiEndPoint {
   static String financialServiceApproveRequestsList =
       '/v1/financial-service/approvals/pending';
   static String financialServiceApproveRequest(int id) =>
-      '/v1/financial-service/payslip-requests/$id/approve';
+      '/v1/financial-service/requests/$id/approve';
   static String financialServiceRejectRequest(int id) =>
-      '/v1/financial-service/payslip-requests/1/reject';
+      '/v1/financial-service/requests/$id/reject';
   static String financialServiceRequestDetailsById(int id) =>
       '/v1/financial-service/requests/$id';
   static String financeComment(int id) =>
@@ -67,6 +67,12 @@ class ApiEndPoint {
       '/v1/security-services/$slug/requests';
   static String securityDetailsById(String slug, int id) =>
       '/v1/security-services/$slug/request/$id';
+  static String securityRequestApprove(String slug, int id) =>
+      '/v1/security-services/$slug/request/$id/approve';
+  static String securityRequestReject(String slug, int id) =>
+      '/v1/security-services/$slug/request/$id/reject';
+  static String securityRequestChat(String slug, int id) =>
+      '/v1/security-services/$slug/request/$id/chat';
   static String securityApprovalRequests(String slug) {
     if (slug == 'employee-card') {
       return '/v1/security-services/$slug/pending-approvals';
@@ -95,13 +101,75 @@ class ApiEndPoint {
   static String unpaidLeavecategories =
       '/v1/hr-service/leaves/unpaidleavecategories';
   static String mourningLeaveRelation = '/v1/hr-service/leaves/leaverelations';
+  static String leaveKPIStats = '/v1/hr-service/analytics/leaves/kpi-cards';
+  static String leaveStatusBreakdown =
+      '/v1/hr-service/analytics/leaves/status-breakdown';
+  static String leaveTrendBreakdown =
+      '/v1/hr-service/analytics/leaves/trend-breakdown';
+  static String leaveApproverKPIStats =
+      '/v1/hr-service/analytics/leave-approvals/kpi-cards';
+  static String leaveApproverStatusBreakdown =
+      '/v1/hr-service/analytics/leave-approvals/status-breakdown';
+  static String leaveApproverTrendBreakdown =
+      '/v1/hr-service/analytics/leave-approvals/trend-breakdown';
+  static const String leaveApprovalRequests =
+      '/v1/hr-service/leaves/requests/for-approval';
+  static const String leaveApproveRequest = '/v1/hr-service/leaves/approve';
+  static String leaveRequestDetailsById(int id) =>
+      '/v1/hr-service/leaves/request/$id';
+  static String leaveUserBalances(int userId) =>
+      '/v1/hr-service/leaves/user-balances/$userId';
 
   /// Attendance
   static String myAttendanceReuqests =
       '/v1/hr-service/update-attendance/requests';
+  static const String attendanceApprovalRequests =
+      '/v1/hr-service/update-attendance/requests/for-approval';
+  static String updateAttendanceRequestById(int id) =>
+      '/v1/hr-service/update-attendance/request/$id';
+  static String updateAttendanceRequestChat(int id) =>
+      '/v1/hr-service/update-attendance/request/$id/chat';
+  static String updateAttendanceRequestApprove(int id) =>
+      '/v1/hr-service/update-attendance/request/$id/approve';
+  static String updateAttendanceRequestReject(int id) =>
+      '/v1/hr-service/update-attendance/request/$id/reject';
   static const String attendanceRecords = "/v1/hr-service/Attendance/106/09";
   static const String createUpdateAttendanceRequest =
       "/v1/hr-service/update-attendance/request";
+  static const String updateAttendanceKPIStats =
+      '/v1/hr-service/analytics/update-attendance/kpi-cards';
+  static const String updateAttendanceStatusBreakdown =
+      '/v1/hr-service/analytics/update-attendance/status-breakdown';
+  static const String updateAttendanceTrendBreakdown =
+      '/v1/hr-service/analytics/update-attendance/trend-breakdown';
+  static const String updateAttendanceApproverKPIStats =
+      '/v1/hr-service/analytics/update-attendance-approvals/kpi-cards';
+  static const String updateAttendanceApproverStatusBreakdown =
+      '/v1/hr-service/analytics/update-attendance-approvals/status-breakdown';
+  static const String updateAttendanceApproverTrendBreakdown =
+      '/v1/hr-service/analytics/update-attendance-approvals/trend-breakdown';
+
+  /// Stay after working hours
+  static String stayAfterHoursCreateRequest =
+      '/v1/hr-service/stay-after-hours/request';
+  static String stayAfterHoursMyRequests =
+      '/v1/hr-service/stay-after-hours/requests';
+  static String stayAfterHoursApprovalRequests =
+      '/v1/hr-service/stay-after-hours/requests/for-approval';
+  static String stayAfterHoursDetailsById(int id) =>
+      '/v1/hr-service/stay-after-hours/request/$id';
+  static String stayAfterHoursKPIStats =
+      '/v1/hr-service/analytics/stay-after-hours/kpi-cards';
+  static String stayAfterHoursStatusBreakdown =
+      '/v1/hr-service/analytics/stay-after-hours/status-breakdown';
+  static String stayAfterHoursTrendBreakdown =
+      '/v1/hr-service/analytics/stay-after-hours/trend-breakdown';
+  static String stayAfterHoursApproverKPIStats =
+      '/v1/hr-service/analytics/stay-after-hours-approvals/kpi-cards';
+  static String stayAfterHoursApproverStatusBreakdown =
+      '/v1/hr-service/analytics/stay-after-hours-approvals/status-breakdown';
+  static String stayAfterHoursApproverTrendBreakdown =
+      '/v1/hr-service/analytics/stay-after-hours-approvals/trend-breakdown';
 
   /// general services- helpdesk
   static String helpDeskCategories = '/v1/general-service/helpdesk/categories';

@@ -12,7 +12,6 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 part 'widget/announcement_card.dart';
 part 'controller.dart';
-part 'widget/ministry_appointment_card.dart';
 
 @RoutePage()
 class MyProfilePage extends ConsumerWidget {
@@ -41,7 +40,6 @@ class MyProfilePage extends ConsumerWidget {
             children: [
               MyProfileWidget(),
               AnnouncementsCard(),
-              MinistryAppointmentsCard(),
             ],
           ),
         ),

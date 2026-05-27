@@ -47,15 +47,12 @@ class _FinanceComment extends StatelessWidget {
             ...entries.map((entry) => CommentEntry(data: entry)),
             AddCommentBox(
               controller: stateController.commentController,
-              onAttach: () {
-                /* Attach callback */
-              },
-              onSend: () {
-                /* Send callback */
-                stateController.addCommentInFinRequest();
-              },
-              approve: () {},
-              reject: () {},
+              showApprovalActions: stateController.canApproveOrReject,
+              attachedFileName: stateController.pendingFileName,
+              onAttach: stateController.pickAndUploadAttachment,
+              onSend: stateController.addCommentInFinRequest,
+              onApprove: stateController.approveRequest,
+              onReject: stateController.rejectRequest,
             ),
           ],
         ),

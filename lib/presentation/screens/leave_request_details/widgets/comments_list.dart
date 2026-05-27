@@ -1,10 +1,10 @@
 part of '../view.dart';
 
-class _SecurityCommentsList extends StatelessWidget {
+class _LeaveCommentsList extends StatelessWidget {
   final List<CommentEntryModel> entries;
-  final _SecurityDetailsController stateController;
+  final _VsController stateController;
 
-  const _SecurityCommentsList({
+  const _LeaveCommentsList({
     required this.entries,
     required this.stateController,
   });
@@ -46,9 +46,8 @@ class _SecurityCommentsList extends StatelessWidget {
             AddCommentBox(
               controller: stateController.commentController,
               showApprovalActions: stateController.canApproveOrReject,
-              attachedFileName: stateController.pendingFileName,
-              onAttach: stateController.pickAndUploadAttachment,
-              onSend: stateController.addCommentInRequest,
+              onAttach: () {},
+              onSend: stateController.addComment,
               onApprove: stateController.approveRequest,
               onReject: stateController.rejectRequest,
             ),

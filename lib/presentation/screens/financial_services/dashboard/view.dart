@@ -17,6 +17,7 @@ import 'package:code_setup/presentation/common_widgets/drawer_item_widget.dart';
 import 'package:code_setup/presentation/common_widgets/radio_group.dart';
 import 'package:code_setup/presentation/common_widgets/request_actions_menu.dart';
 import 'package:code_setup/presentation/common_widgets/status_badge_mobile.dart';
+import 'package:code_setup/presentation/common_widgets/show_toast.dart';
 import 'package:code_setup/presentation/core_widgets/app_bar/app_bar.dart';
 import 'package:code_setup/presentation/core_widgets/buttons/action_button.dart';
 import 'package:code_setup/presentation/core_widgets/drawer/drawer.dart';
@@ -26,6 +27,7 @@ import 'package:code_setup/presentation/core_widgets/input_field/text_field.dart
 import 'package:code_setup/presentation/core_widgets/list_tile_divider.dart';
 import 'package:code_setup/presentation/core_widgets/scaffold/scaffold.dart';
 import 'package:code_setup/presentation/common_widgets/tab_button.dart';
+import 'package:code_setup/presentation/screens/financial_services/financial_dashboard_refresh.dart';
 import 'package:code_setup/presentation/screens/leave_request/view.dart';
 import 'package:code_setup/repository/data/attendance_repository_impl.dart';
 import 'package:code_setup/repository/domain/financial_services_repo.dart';
@@ -78,6 +80,12 @@ class _FinancialServicesDashboardPageState
     final l10n = AppLocalizations.of(context)!;
     final state = ref.watch(_vsProvider(params));
     final stateController = ref.read(_vsProvider(params).notifier);
+
+    ref.listen<int>(financialDashboardRefreshTriggerProvider, (previous, next) {
+      if (previous != next) {
+        stateController.switchToMyRequestsTabAndRefresh();
+      }
+    });
     final statsData = state.isApproverView
         ? state.approvalStatsData
         : state.statsData;
@@ -183,6 +191,10 @@ class _FinancialServicesDashboardPageState
         child: Column(
           children: [
             StatSummaryRow(
+              key: ValueKey(
+                'financial-stats-${statsData.total}-${statsData.pending}-'
+                '${statsData.completed}-${statsData.rejected}',
+              ),
               stats: summaryStats,
               counts: [
                 '${statsData.total ?? 0}',
@@ -193,6 +205,11 @@ class _FinancialServicesDashboardPageState
             ),
 
             RequestStatusBreakdownCard(
+              key: ValueKey(
+                'financial-status-${statusBreakdownData.totalRequests}-'
+                '${statusBreakdownData.pending}-${statusBreakdownData.completed}-'
+                '${statusBreakdownData.rejected}',
+              ),
               data: statusData,
               filterLabelSelected: state.selectedBreakdownValue,
               onChanged: (String? val) {
@@ -201,6 +218,7 @@ class _FinancialServicesDashboardPageState
             ),
 
             RequestTrendBreakdownCard(
+              key: ValueKey('financial-trend-${trendList.join('-')}'),
               monthlyData: trendList,
               selectedYear: state.selectedTrendYear,
               yearOptions: stateController.yearOptions,
@@ -209,7 +227,10 @@ class _FinancialServicesDashboardPageState
             ),
 
             FinanceApprovalCard(
-              key: ValueKey(state.selectedSubServiceIndex),
+              key: ValueKey(
+                'financial-requests-${state.selectedSubServiceIndex}-'
+                '${state.myRequests.length}-${statsData.total ?? 0}',
+              ),
               myRequests: state.myRequests,
               actionItems: state.actionItems,
               state: state,

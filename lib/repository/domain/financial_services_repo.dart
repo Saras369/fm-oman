@@ -42,4 +42,6 @@ abstract class FinancialServicesRepo {
   Future<List<FinancialServiceRequestDetailsItem>?>
   fetchFinancialServiveiceRequestDetailsById(int id);
   Future<void> addCommentInFinRequest(int id, Map<String, dynamic> data);
+  Future<void> approveFinancialRequest(int id, Map<String, dynamic> data);
+  Future<void> rejectFinancialRequest(int id, Map<String, dynamic> data);
 }

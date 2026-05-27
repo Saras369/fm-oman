@@ -24,25 +24,35 @@ class DynamicLeaveFormParams {
 
 class DynamicLeaveFormState {
   final LeaveTypeItem selectedLeaveType;
-  // final Map<String, TextEditingController> controllers;
-  final Map<String, String?> errors; // fieldKey -> error
+  final Map<String, String?> errors;
   final bool isLoading;
   final UserData userData;
   final List<LeaveTypeItem> leaveTypeList;
   final String startDate, endDate;
   final List<String> selectedFileUrl;
   final List<MyLeaveRequestItem> myLeaveRequests;
+  final List<MyLeaveRequestItem> actionItems;
   final String leaveFor;
   final List<UnpaidLeaveCategoryItem> unpaidLeaveCategories;
   final List<MourningLeaveRelationItem> mourningLeaveRelations;
-  final List<BehalfOfUserItem> behalfOfUsers; // <BehalfOfUser>
+  final List<BehalfOfUserItem> behalfOfUsers;
   final UnpaidLeaveCategoryItem selectedUnpaidLeaveCategory;
   final MourningLeaveRelationItem selectedMourningLeaveRelation;
   final BehalfOfUserItem selectedBehalfOfUser;
+  final bool isMyRequest;
+  final FinancialServicesStatsData kpiStats;
+  final ApprovalKpiStatsItem approvalKpiStats;
+  final FinancialStatusBreakdownData statusBreakdown;
+  final FinancialStatusBreakdownData approvalStatusBreakdown;
+  final FinancialServicesTrendBreakdownData monthlyTrend;
+  final FinancialServicesTrendBreakdownData approvalMonthlyTrend;
+  final String selectedBreakdownValue;
+  final int selectedTrendYear;
+  final int selectedBalanceYear;
+  final List<LeaveBalanceData> leaveBalances;
 
   DynamicLeaveFormState({
     required this.selectedLeaveType,
-    // required this.controllers,
     required this.errors,
     required this.isLoading,
     required this.userData,
@@ -51,6 +61,7 @@ class DynamicLeaveFormState {
     required this.endDate,
     required this.selectedFileUrl,
     required this.myLeaveRequests,
+    required this.actionItems,
     required this.leaveFor,
     required this.unpaidLeaveCategories,
     required this.mourningLeaveRelations,
@@ -58,11 +69,21 @@ class DynamicLeaveFormState {
     required this.selectedUnpaidLeaveCategory,
     required this.selectedMourningLeaveRelation,
     required this.selectedBehalfOfUser,
+    required this.isMyRequest,
+    required this.kpiStats,
+    required this.approvalKpiStats,
+    required this.statusBreakdown,
+    required this.approvalStatusBreakdown,
+    required this.monthlyTrend,
+    required this.approvalMonthlyTrend,
+    required this.selectedBreakdownValue,
+    required this.selectedTrendYear,
+    required this.selectedBalanceYear,
+    required this.leaveBalances,
   });
 
   DynamicLeaveFormState copyWith({
     LeaveTypeItem? selectedLeaveType,
-    // Map<String, TextEditingController>? controllers,
     Map<String, String?>? errors,
     bool? isLoading,
     UserData? userData,
@@ -71,6 +92,7 @@ class DynamicLeaveFormState {
     endDate,
     List<String>? selectedFileUrl,
     List<MyLeaveRequestItem>? myLeaveRequests,
+    List<MyLeaveRequestItem>? actionItems,
     String? leaveFor,
     List<UnpaidLeaveCategoryItem>? unpaidLeaveCategories,
     List<MourningLeaveRelationItem>? mourningLeaveRelations,
@@ -78,10 +100,20 @@ class DynamicLeaveFormState {
     UnpaidLeaveCategoryItem? selectedUnpaidLeaveCategory,
     MourningLeaveRelationItem? selectedMourningLeaveRelation,
     BehalfOfUserItem? selectedBehalfOfUser,
+    bool? isMyRequest,
+    FinancialServicesStatsData? kpiStats,
+    ApprovalKpiStatsItem? approvalKpiStats,
+    FinancialStatusBreakdownData? statusBreakdown,
+    FinancialStatusBreakdownData? approvalStatusBreakdown,
+    FinancialServicesTrendBreakdownData? monthlyTrend,
+    FinancialServicesTrendBreakdownData? approvalMonthlyTrend,
+    String? selectedBreakdownValue,
+    int? selectedTrendYear,
+    int? selectedBalanceYear,
+    List<LeaveBalanceData>? leaveBalances,
   }) {
     return DynamicLeaveFormState(
       selectedLeaveType: selectedLeaveType ?? this.selectedLeaveType,
-      // controllers: controllers ?? this.controllers,
       errors: errors ?? this.errors,
       isLoading: isLoading ?? this.isLoading,
       userData: userData ?? this.userData,
@@ -90,6 +122,7 @@ class DynamicLeaveFormState {
       endDate: endDate ?? this.endDate,
       selectedFileUrl: selectedFileUrl ?? this.selectedFileUrl,
       myLeaveRequests: myLeaveRequests ?? this.myLeaveRequests,
+      actionItems: actionItems ?? this.actionItems,
       leaveFor: leaveFor ?? this.leaveFor,
       unpaidLeaveCategories:
           unpaidLeaveCategories ?? this.unpaidLeaveCategories,
@@ -101,12 +134,61 @@ class DynamicLeaveFormState {
       selectedMourningLeaveRelation:
           selectedMourningLeaveRelation ?? this.selectedMourningLeaveRelation,
       selectedBehalfOfUser: selectedBehalfOfUser ?? this.selectedBehalfOfUser,
+      isMyRequest: isMyRequest ?? this.isMyRequest,
+      kpiStats: kpiStats ?? this.kpiStats,
+      approvalKpiStats: approvalKpiStats ?? this.approvalKpiStats,
+      statusBreakdown: statusBreakdown ?? this.statusBreakdown,
+      approvalStatusBreakdown:
+          approvalStatusBreakdown ?? this.approvalStatusBreakdown,
+      monthlyTrend: monthlyTrend ?? this.monthlyTrend,
+      approvalMonthlyTrend: approvalMonthlyTrend ?? this.approvalMonthlyTrend,
+      selectedBreakdownValue:
+          selectedBreakdownValue ?? this.selectedBreakdownValue,
+      selectedTrendYear: selectedTrendYear ?? this.selectedTrendYear,
+      selectedBalanceYear: selectedBalanceYear ?? this.selectedBalanceYear,
+      leaveBalances: leaveBalances ?? this.leaveBalances,
     );
   }
 }
 
 class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
   final DynamicLeaveFormParams params;
+  final LeaveRepo _leaveRepo = LeaveRepo();
+
+  static const _balanceColors = [
+    Color(0xFF6677C6),
+    Color(0xFF2EC5CE),
+    Color(0xFFE8547F),
+    Color(0xFFA347CF),
+    Color(0xFFF96636),
+  ];
+
+  final stats = [
+    StatSummaryData(
+      title: 'Total Requests',
+      description: 'This Month',
+      icon: Icons.assignment_outlined,
+      iconBgColor: Color(0xFFF3F6F8),
+    ),
+    StatSummaryData(
+      title: 'Approved',
+      description: 'This Month',
+      icon: Icons.check_box_outlined,
+      iconBgColor: Color(0xFFE7F1FF),
+    ),
+    StatSummaryData(
+      title: 'Pending',
+      description: 'This Month',
+      icon: Icons.timer_outlined,
+      iconBgColor: Color(0xFFFFF9E7),
+    ),
+    StatSummaryData(
+      title: 'Rejected',
+      description: 'This Month',
+      icon: Icons.cancel_outlined,
+      iconBgColor: Color(0xFFFFE9EA),
+    ),
+  ];
 
   DynamicLeaveFormController(this.params)
     : super(
@@ -120,6 +202,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
           endDate: '',
           selectedFileUrl: [],
           myLeaveRequests: [],
+          actionItems: [],
           leaveFor: 'Self',
           unpaidLeaveCategories: [],
           mourningLeaveRelations: [],
@@ -127,9 +210,30 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
           selectedUnpaidLeaveCategory: UnpaidLeaveCategoryItem(),
           selectedMourningLeaveRelation: MourningLeaveRelationItem(),
           selectedBehalfOfUser: BehalfOfUserItem(),
+          isMyRequest: true,
+          kpiStats: FinancialServicesStatsData(),
+          approvalKpiStats: ApprovalKpiStatsItem(),
+          statusBreakdown: FinancialStatusBreakdownData(),
+          approvalStatusBreakdown: FinancialStatusBreakdownData(),
+          monthlyTrend: FinancialServicesTrendBreakdownData(),
+          approvalMonthlyTrend: FinancialServicesTrendBreakdownData(),
+          selectedBreakdownValue: 'Yearly',
+          selectedTrendYear: DateTime.now().year,
+          selectedBalanceYear: DateTime.now().year,
+          leaveBalances: [],
         ),
       );
   final formKey = GlobalKey<FormState>();
+
+  Map<String, dynamic> get _serviceParams => {
+    'service_id': params.serviceId,
+    'sub_service_id': determineSubServiceId(),
+  };
+
+  List<int> get yearOptions {
+    final currentYear = DateTime.now().year;
+    return [currentYear - 1, currentYear, currentYear + 1];
+  }
 
   late TextEditingController startDateController;
   late TextEditingController endDateController;
@@ -217,7 +321,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
         log(userData.toJson().toString());
       }
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching user data $e');
     }
@@ -235,7 +339,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
       }
       return [];
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
       return [];
     } catch (e) {
       return [];
@@ -243,25 +347,57 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
   }
 
   Future<void> onPressSelectStartDate() async {
+    final selectedStartDate = DateTime.tryParse(state.startDate);
     final pickedDate = await KAppX.extendedRouter.showKDatePicker(
       context: KAppX.currentContext,
-      initialDate: DateTime.now(),
+      initialDate: selectedStartDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
     );
     if (pickedDate != null) {
+      final normalizedPickedDate = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+      );
+      final selectedEndDate = DateTime.tryParse(state.endDate);
+      final shouldClearEndDate =
+          selectedEndDate != null &&
+          DateTime(
+                selectedEndDate.year,
+                selectedEndDate.month,
+                selectedEndDate.day,
+              ).isBefore(normalizedPickedDate);
+
       state = state.copyWith(
         startDate: pickedDate.formattedDateAsYearMonthDate,
+        endDate: shouldClearEndDate ? '' : state.endDate,
       );
       startDateController.text = pickedDate.formattedDateAsYearMonthDate;
+
+      if (shouldClearEndDate) {
+        endDateController.clear();
+        ShowFlutterToast().showFlutterToastFailure(
+          'End Date was reset because it cannot be before Start Date.',
+        );
+      }
     }
   }
 
   Future<void> onPressSelectEndDate() async {
+    final selectedStartDate = DateTime.tryParse(state.startDate);
+    final selectedEndDate = DateTime.tryParse(state.endDate);
+    final fallbackInitialDate = selectedStartDate ?? DateTime.now();
+
+    DateTime initialDate = selectedEndDate ?? fallbackInitialDate;
+    if (selectedStartDate != null && initialDate.isBefore(selectedStartDate)) {
+      initialDate = selectedStartDate;
+    }
+
     final pickedDate = await KAppX.extendedRouter.showKDatePicker(
       context: KAppX.currentContext,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
+      initialDate: initialDate,
+      firstDate: selectedStartDate ?? DateTime(1900),
       lastDate: DateTime(2100),
     );
     if (pickedDate != null) {
@@ -362,23 +498,280 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
   Future<void> createLeaveRequest() async {
     final data = createLeaveRequestBody();
 
-    final authRepo = LeaveRepo();
     try {
       state = state.copyWith(isLoading: true);
-      await authRepo.createLeaveRequest(data);
+      await _leaveRepo.createLeaveRequest(data);
       state = state.copyWith(isLoading: false);
-
-      /// to do: fetch leave request list
-
-      // KAppX.router.pop();
+      await _refreshDashboard();
       onPressSubmitClearFormFields();
     } on ApiException catch (apiError) {
       state = state.copyWith(isLoading: false);
-
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       state = state.copyWith(isLoading: false);
     }
+  }
+
+  Future<void> _refreshDashboard() async {
+    await fetchMyLeaveRequests();
+    if (state.isMyRequest) {
+      await Future.wait([
+        fetchKPIStats(),
+        fetchStatusBreakDownData(),
+        fetchMonthlyTrendData(),
+      ]);
+    } else {
+      await Future.wait([
+        fetchApproverKPIStats(),
+        fetchApproverStatusBreakDownData(),
+        fetchApproverMonthlyTrendData(),
+        fetchLeaveApprovalRequests(),
+      ]);
+    }
+    // await fetchLeaveBalances();
+  }
+
+  Future<void> fetchKPIStats() async {
+    try {
+      final statsData = await _leaveRepo.fetchLeaveKPIStats(_serviceParams);
+      if (statsData != null) {
+        state = state.copyWith(kpiStats: statsData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave kpi stats $e');
+    }
+  }
+
+  Future<void> fetchApproverKPIStats() async {
+    try {
+      final statsData = await _leaveRepo.fetchLeaveApproverKPIStats(
+        _serviceParams,
+      );
+      if (statsData != null) {
+        state = state.copyWith(approvalKpiStats: statsData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave approver kpi stats $e');
+    }
+  }
+
+  Future<void> fetchStatusBreakDownData() async {
+    try {
+      final statusBreakdownData = await _leaveRepo.fetchLeaveStatusBreakdown({
+        'time_period': state.selectedBreakdownValue.toLowerCase(),
+        ..._serviceParams,
+      });
+      if (statusBreakdownData != null) {
+        state = state.copyWith(statusBreakdown: statusBreakdownData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave status breakdown $e');
+    }
+  }
+
+  Future<void> fetchApproverStatusBreakDownData() async {
+    try {
+      final statusBreakdownData = await _leaveRepo.fetchLeaveStatusBreakdown(
+        {
+          'time_period': state.selectedBreakdownValue.toLowerCase(),
+          ..._serviceParams,
+        },
+        isMyRequest: false,
+      );
+      if (statusBreakdownData != null) {
+        state = state.copyWith(approvalStatusBreakdown: statusBreakdownData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave approver status breakdown $e');
+    }
+  }
+
+  void onChangedStatusBreakDownValue(String? val) {
+    if (val == null || state.selectedBreakdownValue == val) return;
+    state = state.copyWith(selectedBreakdownValue: val);
+    if (state.isMyRequest) {
+      fetchStatusBreakDownData();
+    } else {
+      fetchApproverStatusBreakDownData();
+    }
+  }
+
+  Future<void> fetchMonthlyTrendData() async {
+    try {
+      final trendData = await _leaveRepo.fetchLeaveTrendBreakdown({
+        'year': state.selectedTrendYear,
+        ..._serviceParams,
+      });
+      if (trendData != null) {
+        state = state.copyWith(monthlyTrend: trendData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave monthly trend $e');
+    }
+  }
+
+  Future<void> fetchApproverMonthlyTrendData() async {
+    try {
+      final trendData = await _leaveRepo.fetchLeaveTrendBreakdown(
+        {'year': state.selectedTrendYear, ..._serviceParams},
+        isMyRequest: false,
+      );
+      if (trendData != null) {
+        state = state.copyWith(approvalMonthlyTrend: trendData);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave approver monthly trend $e');
+    }
+  }
+
+  void onChangedTrendYearValue(int? val) {
+    if (val == null || state.selectedTrendYear == val) return;
+    state = state.copyWith(selectedTrendYear: val);
+    if (state.isMyRequest) {
+      fetchMonthlyTrendData();
+    } else {
+      fetchApproverMonthlyTrendData();
+    }
+  }
+
+  void onChangedBalanceYearValue(int? val) {
+    if (val == null || state.selectedBalanceYear == val) return;
+    state = state.copyWith(selectedBalanceYear: val);
+    // fetchLeaveBalances();
+  }
+
+  Future<void> fetchLeaveBalances() async {
+    final userId = KAppX.globalProvider.read(userProvider)?.userId;
+    if (userId == null) return;
+
+    try {
+      final balances = await _leaveRepo.fetchLeaveUserBalances(
+        userId,
+        year: state.selectedBalanceYear,
+      );
+      if (balances != null) {
+        state = state.copyWith(leaveBalances: _mapLeaveBalances(balances));
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave balances $e');
+    }
+  }
+
+  List<LeaveBalanceData> _mapLeaveBalances(List<LeaveUserBalanceItem> items) {
+    return items.asMap().entries.map((entry) {
+      final item = entry.value;
+      final used = item.used ?? 0;
+      final total = item.total ?? 0;
+      return LeaveBalanceData(
+        title: item.leaveTypeName ?? 'Leave',
+        used: used,
+        total: total > 0 ? total : (used > 0 ? used : 1),
+        color: _balanceColors[entry.key % _balanceColors.length],
+      );
+    }).toList();
+  }
+
+  Future<void> fetchLeaveApprovalRequests() async {
+    try {
+      final actionItems = await _leaveRepo.fetchLeaveApprovalRequests(
+        queryParameters: _serviceParams,
+      );
+      if (actionItems != null) {
+        state = state.copyWith(actionItems: actionItems);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching leave approval requests $e');
+    }
+  }
+
+  void onSwitchTabsInMyRequestCard(int index) {
+    final isMyRequest = index == 0;
+    state = state.copyWith(isMyRequest: isMyRequest);
+    if (isMyRequest) {
+      fetchKPIStats();
+      fetchMonthlyTrendData();
+      fetchStatusBreakDownData();
+      fetchMyLeaveRequests();
+    } else {
+      fetchApproverKPIStats();
+      fetchApproverMonthlyTrendData();
+      fetchApproverStatusBreakDownData();
+      fetchLeaveApprovalRequests();
+    }
+  }
+
+  Map<String, ChartData> returnStatusBreakdownData() {
+    final statusBreakdown = state.isMyRequest
+        ? state.statusBreakdown
+        : state.approvalStatusBreakdown;
+
+    return {
+      'opened': ChartData(
+        label: 'Opened',
+        value: statusBreakdown.completed ?? 0,
+        color: const Color(0xFF54A23B),
+      ),
+      'pending': ChartData(
+        label: 'Pending',
+        value: statusBreakdown.pending ?? 0,
+        color: const Color(0xFFF7B226),
+      ),
+      'closed': ChartData(
+        label: 'Closed',
+        value: statusBreakdown.rejected ?? 0,
+        color: const Color(0xFFD43E3E),
+      ),
+    };
+  }
+
+  List<int> returnMonthlyTrendData() {
+    final monthlyTrend = state.isMyRequest
+        ? state.monthlyTrend.monthlyTrend
+        : state.approvalMonthlyTrend.monthlyTrend;
+
+    final trendList = List<int>.filled(12, 0);
+    if (monthlyTrend?.isNotEmpty == true) {
+      for (var i = 0; i < monthlyTrend!.length && i < 12; i++) {
+        trendList[i] = monthlyTrend[i].total ?? 0;
+      }
+    }
+    return trendList;
+  }
+
+  List<String> determineKPIStats() {
+    if (state.isMyRequest) {
+      final kpi = state.kpiStats;
+      return [
+        '${kpi.total ?? 0}',
+        '${kpi.completed ?? 0}',
+        '${kpi.pending ?? 0}',
+        '${kpi.rejected ?? 0}',
+      ];
+    }
+
+    final approverKpi = state.approvalKpiStats;
+    return [
+      '${approverKpi.totalAssignedToMe ?? 0}',
+      '${approverKpi.approvedByMe ?? 0}',
+      '${approverKpi.pendingMyApproval ?? 0}',
+      '${approverKpi.rejectedByMe ?? 0}',
+    ];
   }
 
   void onSelectLeaveType(LeaveTypeItem leaveType) {
@@ -398,15 +791,14 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
   }
 
   Future<void> fetchMyLeaveRequests() async {
-    final authRepo = LeaveRepo();
     try {
-      final myLeaveReq = await authRepo.fetchMyLeaveRequests();
+      final myLeaveReq = await _leaveRepo.fetchMyLeaveRequests();
 
       if (myLeaveReq != null) {
         state = state.copyWith(myLeaveRequests: myLeaveReq);
       }
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching leave requests $e');
     }
@@ -434,7 +826,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
         state = state.copyWith(behalfOfUsers: behalfOfUsers);
       }
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching behalf of users $e');
     }
@@ -453,7 +845,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
         state = state.copyWith(unpaidLeaveCategories: unpaidLeaveCat);
       }
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching unpaid leave categories $e');
     }
@@ -473,7 +865,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
         state = state.copyWith(mourningLeaveRelations: mourningLeaveRelations);
       }
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching mourning leave relations $e');
     }
@@ -515,10 +907,14 @@ final dynamicLeaveFormControllerProvider = StateNotifierProvider.autoDispose
 
       // Call your init logic or async method here.
       // For example, immediately fetch user data:
-      Future.microtask(() {
-        controller.fetchUserDataById();
-        controller.fetchLeaveTypes();
-        controller.fetchMyLeaveRequests();
+      Future.microtask(() async {
+        await controller.fetchUserDataById();
+        await controller.fetchLeaveTypes();
+        await controller.fetchMyLeaveRequests();
+        await controller.fetchKPIStats();
+        await controller.fetchStatusBreakDownData();
+        await controller.fetchMonthlyTrendData();
+        // await controller.fetchLeaveBalances();
       });
 
       return controller;

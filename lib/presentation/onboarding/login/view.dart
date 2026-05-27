@@ -18,6 +18,7 @@ import 'package:msal_auth/msal_auth.dart';
 
 import '../../../utils/app_extensions/app_extension.dart';
 import '../../core_widgets/input_field/mobile_number_input_field.dart';
+import '../../core_widgets/input_field/text_field.dart';
 
 part 'controller.dart';
 part 'widgets/announcement_card.dart';

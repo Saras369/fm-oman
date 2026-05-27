@@ -1,27 +1,37 @@
 part of 'view.dart';
 
-// class _VSControllerParams extends Equatable {
-//   final TaskItemDetail taskItemDetails;
-//   _VSControllerParams(
-//       {
-//         required this.taskItemDetails,
-//       });
-//
-//   @override
-//   // TODO: implement props
-//   List<Object?> get props => [];
-// }
-//
-// final _paramProvider = Provider<_VSControllerParams>((ref) {
-//   throw UnimplementedError();
-// });
+String attendanceApproverDisplayName(AttendanceRequestItem item) {
+  final details = item.approvalDetails ?? [];
+  for (final approval in details) {
+    final userName = approval.approverUser?.employeeName?.trim();
+    if (userName != null && userName.isNotEmpty) return userName;
+
+    final roleName = approval.approverRole?.name?.trim();
+    if (roleName != null && roleName.isNotEmpty) return roleName;
+  }
+  return 'N/A';
+}
+
+List<AttendanceRequestItem> filterAttendanceRequests(
+  List<AttendanceRequestItem> list,
+  String query,
+) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return list;
+
+  return list.where((item) {
+    final idMatch = '${item.id ?? ''}'.contains(q);
+    final approverMatch = attendanceApproverDisplayName(item)
+        .toLowerCase()
+        .contains(q);
+    return idMatch || approverMatch;
+  }).toList();
+}
 
 final _vsProvider =
     StateNotifierProvider.autoDispose<_VSController, _ViewState>((ref) {
       final stateController = _VSController();
-
       stateController.initState();
-
       return stateController;
     });
 
@@ -29,16 +39,25 @@ class _ViewState {
   final bool isLoading;
   final AttendanceData attendanceData;
   final List<AttendanceRequestItem> myAttendanceRequests;
-  final String fromDate, toDate, fromTime, toTime;
+  final List<AttendanceRequestItem> actionItems;
+  final String fromDate;
+  final String toDate;
+  final String fromTime;
+  final String toTime;
+  final String searchQuery;
+  final int requestListTabIndex;
 
   _ViewState({
     required this.isLoading,
     required this.attendanceData,
     required this.myAttendanceRequests,
+    required this.actionItems,
     required this.fromDate,
     required this.toDate,
     required this.fromTime,
     required this.toTime,
+    required this.searchQuery,
+    required this.requestListTabIndex,
   });
 
   _ViewState.init()
@@ -46,29 +65,44 @@ class _ViewState {
         isLoading: false,
         attendanceData: AttendanceData(),
         myAttendanceRequests: [],
+        actionItems: [],
         fromDate: '',
         toDate: '',
         fromTime: '',
         toTime: '',
+        searchQuery: '',
+        requestListTabIndex: 0,
       );
+
+  List<AttendanceRequestItem> get filteredMyRequests =>
+      filterAttendanceRequests(myAttendanceRequests, searchQuery);
+
+  List<AttendanceRequestItem> get filteredActionItems =>
+      filterAttendanceRequests(actionItems, searchQuery);
 
   _ViewState copyWith({
     bool? isLoading,
     AttendanceData? attendanceData,
     List<AttendanceRequestItem>? myAttendanceRequests,
+    List<AttendanceRequestItem>? actionItems,
     String? fromDate,
     String? toDate,
     String? fromTime,
     String? toTime,
+    String? searchQuery,
+    int? requestListTabIndex,
   }) {
     return _ViewState(
       isLoading: isLoading ?? this.isLoading,
       attendanceData: attendanceData ?? this.attendanceData,
       myAttendanceRequests: myAttendanceRequests ?? this.myAttendanceRequests,
+      actionItems: actionItems ?? this.actionItems,
       fromDate: fromDate ?? this.fromDate,
       toDate: toDate ?? this.toDate,
       fromTime: fromTime ?? this.fromTime,
       toTime: toTime ?? this.toTime,
+      searchQuery: searchQuery ?? this.searchQuery,
+      requestListTabIndex: requestListTabIndex ?? this.requestListTabIndex,
     );
   }
 }
@@ -83,6 +117,7 @@ class _VSController extends StateNotifier<_ViewState> {
   late TextEditingController reasonController;
 
   final formKey = GlobalKey<FormState>();
+  final _attendanceRepo = AttendanceRepository();
 
   void initState() {
     fromDateController = TextEditingController();
@@ -91,41 +126,64 @@ class _VSController extends StateNotifier<_ViewState> {
     toTimeController = TextEditingController();
     reasonController = TextEditingController();
     fetchAttendanceRecord();
-    fetchMyAttendanceRequests();
+    _refreshMyRequestsDashboardData();
   }
 
-  final stats = [
-    StatSummaryData(
-      title: "Total Requests",
-      description: "This Month",
-      icon: Icons.assignment_outlined,
-      iconBgColor: const Color(0xFFF3F6F8),
-    ),
-    StatSummaryData(
-      title: "Approved",
-      description: "This Month",
-      icon: Icons.check_box_outlined,
-      iconBgColor: const Color(0xFFE7F1FF),
-    ),
-    StatSummaryData(
-      title: "Pending",
-      description: "This Month",
-      icon: Icons.timer_outlined,
-      iconBgColor: const Color(0xFFFFF9E7),
-    ),
-    StatSummaryData(
-      title: "Rejected",
-      description: "This Month",
-      icon: Icons.cancel_outlined,
-      iconBgColor: const Color(0xFFFFE9EA),
-    ),
-  ];
-  Future<void> fetchAttendanceRecord() async {
-    final attendanceRepo = AttendanceRepository();
+  Future<void> _refreshMyRequestsDashboardData() async {
+    List<AttendanceRequestItem>? myRequests;
 
     try {
-      final atttendanceData = await attendanceRepo.fetchAttendanceRecord();
+      myRequests = await _attendanceRepo.fetchMyAttendanceRequests();
+    } on ApiException catch (apiError) {
+      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+    } catch (e) {
+      debugPrint('error refreshing my attendance requests: $e');
+    }
 
+    state = state.copyWith(
+      myAttendanceRequests: myRequests ?? state.myAttendanceRequests,
+    );
+  }
+
+  Future<void> _refreshActionItemsDashboardData() async {
+    List<AttendanceRequestItem>? approvalRequests;
+
+    try {
+      approvalRequests = await _attendanceRepo.fetchAttendanceApprovalRequests();
+    } on ApiException catch (apiError) {
+      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+    } catch (e) {
+      debugPrint('error refreshing attendance approval requests: $e');
+    }
+
+    state = state.copyWith(
+      actionItems: approvalRequests ?? state.actionItems,
+    );
+  }
+
+  Future<void> switchToMyRequestsTabAndRefresh() async {
+    state = state.copyWith(requestListTabIndex: 0);
+    await _refreshMyRequestsDashboardData();
+  }
+
+  void setRequestListTab(int index) {
+    state = state.copyWith(
+      requestListTabIndex: index,
+    );
+    if (index == 1) {
+      _refreshActionItemsDashboardData();
+    } else {
+      _refreshMyRequestsDashboardData();
+    }
+  }
+
+  void onSearchChanged(String value) {
+    state = state.copyWith(searchQuery: value);
+  }
+
+  Future<void> fetchAttendanceRecord() async {
+    try {
+      final atttendanceData = await _attendanceRepo.fetchAttendanceRecord();
       if (atttendanceData != null) {
         state = state.copyWith(attendanceData: atttendanceData);
       }
@@ -134,74 +192,70 @@ class _VSController extends StateNotifier<_ViewState> {
     } catch (e) {}
   }
 
-  Future<void> fetchMyAttendanceRequests() async {
-    final attendanceRepo = AttendanceRepository();
-    try {
-      final attendanceReq = await attendanceRepo.fetchMyAttendanceRequests();
-
-      if (attendanceReq != null) {
-        state = state.copyWith(myAttendanceRequests: attendanceReq);
-      }
-    } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
-    } catch (e) {}
-  }
-
   Future<void> onPressUpdateCreateAttendanceRequest() async {
     final user = KAppX.globalProvider.read(userProvider);
     final isValid = formKey.currentState?.validate();
-    if (isValid == true) {
-      final Map<String, dynamic> data = {
-        "user_id": user?.userId,
-        "service_id": 1,
-        "sub_service_id": 4,
-        "req_user_department_id": user?.department,
-        "req_user_section_id": user?.section,
-        "from_date": "2025-11-21",
-        "to_date": "2025-11-22",
-        "from_time": "08:00",
-        "to_time": "10:30",
-        "reason": "Meeting",
-        "comments": "Adjusting attendance to cover Ministry briefing",
-      };
+    if (isValid != true) return;
 
-      final attendanceRepo = AttendanceRepository();
-      try {
-        state = state.copyWith(isLoading: true);
-        await attendanceRepo.createUpdateAttendanceRequest(data);
-        state = state.copyWith(isLoading: false);
+    final existingServiceId = state.myAttendanceRequests.firstOrNull?.serviceId;
+    final existingSubServiceId =
+        state.myAttendanceRequests.firstOrNull?.subServiceId;
 
-        /// to do: fetch leave request list
+    final Map<String, dynamic> data = {
+      'user_id': user?.userId,
+      'service_id': existingServiceId ?? 46,
+      'sub_service_id': existingSubServiceId ?? 189,
+      'req_user_department_id': user?.department,
+      'req_user_section_id': user?.section,
+      'from_date': state.fromDate,
+      'to_date': state.toDate,
+      'from_time': state.fromTime,
+      'to_time': state.toTime,
+      'reason': reasonController.text.trim(),
+      'comments': reasonController.text.trim(),
+    };
 
-        // KAppX.router.pop();
-        onPressSubmitClearFormFields();
-      } on ApiException catch (apiError) {
-        state = state.copyWith(isLoading: false);
-
-        Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
-      } catch (e) {
-        state = state.copyWith(isLoading: false);
-      }
+    try {
+      state = state.copyWith(isLoading: true);
+      await _attendanceRepo.createUpdateAttendanceRequest(data);
+      state = state.copyWith(isLoading: false);
+      await onAttendanceRequestCreated();
+    } on ApiException catch (apiError) {
+      state = state.copyWith(isLoading: false);
+      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
     }
   }
 
-  void onPressRequestDetails(int requestId) {}
+  Future<void> onAttendanceRequestCreated() async {
+    state = state.copyWith(requestListTabIndex: 0);
+    onPressSubmitClearFormFields(clearOnly: true);
+    await _refreshMyRequestsDashboardData();
+    KAppX.extendedRouter.dialog.closeKDialog();
+  }
 
-  void onPressSubmitClearFormFields() {
+  void onPressRequestDetails(int requestId) {
+    KAppX.router.push(UpdateAttendanceDetailsRoute(requestId: requestId));
+  }
+
+  void onPressSubmitClearFormFields({bool clearOnly = false}) {
     formKey.currentState?.reset();
     fromDateController.clear();
     toDateController.clear();
     fromTimeController.clear();
     toTimeController.clear();
     reasonController.clear();
-    KAppX.router.pop();
+    state = state.copyWith(fromDate: '', toDate: '', fromTime: '', toTime: '');
+    if (!clearOnly) {
+      KAppX.router.pop();
+    }
   }
 
   Future<void> onPressFromDate(bool isFromDate) async {
     final dateTime = await KAppX.extendedRouter.showKDatePicker(
       initialDate: DateTime.now(),
-      // make it todays date
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime(DateTime.now().year + 1),
       initialEntryMode: DatePickerEntryMode.calendar,
     );
@@ -212,9 +266,7 @@ class _VSController extends StateNotifier<_ViewState> {
           fromDate: dateTime.formattedDateAsYearMonthDate.toString(),
         );
         fromDateController.text = dateTime.formattedDateAsDateMonthYear;
-      }
-
-      if (!isFromDate) {
+      } else {
         state = state.copyWith(
           toDate: dateTime.formattedDateAsYearMonthDate.toString(),
         );
@@ -233,9 +285,7 @@ class _VSController extends StateNotifier<_ViewState> {
       if (isFromTime) {
         state = state.copyWith(fromTime: dateTime.formattedTimeTrain);
         fromTimeController.text = dateTime.formattedTime;
-      }
-
-      if (!isFromTime) {
+      } else {
         state = state.copyWith(toTime: dateTime.formattedTimeTrain);
         toTimeController.text = dateTime.formattedTime;
       }

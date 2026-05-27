@@ -20,6 +20,14 @@ class ApprovalKpiStatsModel {
   }
 }
 
+int? _readApprovalKpiInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is double) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
 class ApprovalKpiStatsItem {
   final int? totalAssignedToMe;
   final int? pendingMyApproval;
@@ -35,10 +43,10 @@ class ApprovalKpiStatsItem {
 
   factory ApprovalKpiStatsItem.fromJson(Map<String, dynamic> json) {
     return ApprovalKpiStatsItem(
-      totalAssignedToMe: json['total_approvals'] as int?,
-      pendingMyApproval: json['pending'] as int?,
-      approvedByMe: json['approved'] as int?,
-      rejectedByMe: json['rejected'] as int?,
+      totalAssignedToMe: _readApprovalKpiInt(json['total_approvals']),
+      pendingMyApproval: _readApprovalKpiInt(json['pending']),
+      approvedByMe: _readApprovalKpiInt(json['approved']),
+      rejectedByMe: _readApprovalKpiInt(json['rejected']),
     );
   }
 

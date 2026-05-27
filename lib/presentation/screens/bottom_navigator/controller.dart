@@ -41,9 +41,7 @@ class _ViewState {
 class _VSController extends StateNotifier<_ViewState> {
   _VSController() : super(_ViewState.init());
 
-  void initState() {
-    print('hello');
-  }
+  void initState() {}
 
   int get currentTabIndex {
     return state.currentTabIndex;
@@ -69,11 +67,9 @@ class _VSController extends StateNotifier<_ViewState> {
       case 0:
         return '  Attendance & Info';
       case 1:
-        return '  Leave Portal';
+        return '  Leave Portal (Request for Leave)';
       case 2:
-        return '  Holidays';
-      case 3:
-        return '  Request for Early Checkout';
+        return '  Request for stay after working hours';
       default:
         return '  Home';
     }

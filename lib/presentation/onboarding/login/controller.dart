@@ -40,8 +40,10 @@ class _VSController extends StateNotifier<_ViewState> {
   _VSController() : super(_ViewState.init());
 
   late SingleAccountPca msal;
+  late TextEditingController tokenController;
 
   void initState() {
+    tokenController = TextEditingController();
     initializeMsal();
   }
 
@@ -68,20 +70,54 @@ class _VSController extends StateNotifier<_ViewState> {
   String accessToken = '';
 
   Future<void> signIn() async {
+    state = state.copyWith(isLoading: true);
     try {
-      AuthenticationResult result = await msal.acquireToken(
-        scopes: ['user.read'],
-      );
-
+      final result = await msal.acquireToken(scopes: ['user.read']);
       accessToken = result.accessToken;
-
-      onGettingSSOAccessTokenFetchAuthToken(accessToken);
-
-      // Use this info to sign in your user or call Microsoft Graph APIs
+      await onGettingSSOAccessTokenFetchAuthToken(accessToken);
     } on MsalException catch (e) {
-      print('Error during login: ${e.message}');
+      Fluttertoast.showToast(
+        msg: e.message ?? 'Microsoft sign-in failed',
+        timeInSecForIosWeb: 3,
+      );
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Microsoft sign-in failed',
+        timeInSecForIosWeb: 3,
+      );
+    } finally {
+      state = state.copyWith(isLoading: false);
     }
   }
+
+  /// Optional login: paste Microsoft SSO token or app auth JWT.
+  Future<void> signInWithPastedToken() async {
+    final pasted = tokenController.text.trim();
+    if (pasted.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Please paste a token to continue',
+        timeInSecForIosWeb: 3,
+      );
+      return;
+    }
+
+    state = state.copyWith(isLoading: true);
+    try {
+      if (_isJwtFormat(pasted)) {
+        final loggedIn = await completeLoginWithAuthToken(
+          pasted,
+          showErrorToast: false,
+        );
+        if (loggedIn) return;
+      }
+
+      await onGettingSSOAccessTokenFetchAuthToken(pasted);
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  bool _isJwtFormat(String token) => token.split('.').length == 3;
 
   Future<void> _signOut() async {
     await msal.signOut();
@@ -89,22 +125,38 @@ class _VSController extends StateNotifier<_ViewState> {
 
   Future<void> onGettingSSOAccessTokenFetchAuthToken(String accessToken) async {
     final authRepo = AuthRepository();
-
     final response = await authRepo.getAuthTokenWithSSOAccessToken(accessToken);
 
-    if (response != null && response.isNotEmpty) {
-      final authToken = response['token'];
-      decodeJwtPayloadSafe(authToken);
+    if (response == null || response.isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Unable to authenticate with the provided token',
+        timeInSecForIosWeb: 3,
+      );
+      return;
     }
+
+    final authToken = response['token'];
+    if (authToken == null || authToken.toString().isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Authentication response did not include a token',
+        timeInSecForIosWeb: 3,
+      );
+      return;
+    }
+
+    await completeLoginWithAuthToken(authToken.toString());
   }
 
-  void decodeJwtPayloadSafe(String token) async {
+  Future<bool> completeLoginWithAuthToken(
+    String token, {
+    bool showErrorToast = true,
+  }) async {
     final kAuthCred = KAuthCred();
 
     try {
       final parts = token.split('.');
       if (parts.length != 3) {
-        throw FormatException('Invalid JWT token structure');
+        throw const FormatException('Invalid JWT token structure');
       }
 
       final payload = parts[1];
@@ -112,26 +164,40 @@ class _VSController extends StateNotifier<_ViewState> {
       final decodedBytes = base64Url.decode(normalized);
       final decodedString = utf8.decode(decodedBytes);
       final payloadMap = json.decode(decodedString);
-      payloadMap['accessToken'] = token;
-      log('user details - $payloadMap');
       if (payloadMap is! Map<String, dynamic>) {
-        throw FormatException('Payload is not a valid JSON object');
+        throw const FormatException('Payload is not a valid JSON object');
       }
 
-      final User user = User.fromJson((payloadMap));
+      payloadMap['accessToken'] = token;
+      log('user details - $payloadMap');
 
+      final user = User.fromJson(payloadMap);
       await kAuthCred.storeProfileData(user);
-
       KAppX.router.replace(HomeRoute());
+      return true;
     } on FormatException catch (e) {
       log('FormatException while decoding JWT: $e');
+      if (showErrorToast) {
+        Fluttertoast.showToast(
+          msg: 'Invalid token format',
+          timeInSecForIosWeb: 3,
+        );
+      }
     } catch (e) {
       log('Unexpected error decoding JWT: $e');
+      if (showErrorToast) {
+        Fluttertoast.showToast(
+          msg: 'Unable to sign in with this token',
+          timeInSecForIosWeb: 3,
+        );
+      }
     }
+    return false;
   }
 
   @override
   void dispose() {
+    tokenController.dispose();
     super.dispose();
   }
 }

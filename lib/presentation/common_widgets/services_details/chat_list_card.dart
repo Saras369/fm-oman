@@ -151,15 +151,22 @@ class CommentEntry extends StatelessWidget {
 // Reusable input section
 class AddCommentBox extends StatefulWidget {
   final TextEditingController controller;
-  final VoidCallback? onAttach, onSend, approve, reject;
+  final VoidCallback? onAttach;
+  final VoidCallback? onSend;
+  final Future<void> Function(String comment)? onApprove;
+  final Future<void> Function(String comment)? onReject;
+  final bool showApprovalActions;
+  final String? attachedFileName;
 
   const AddCommentBox({
     super.key,
     required this.controller,
     this.onAttach,
     this.onSend,
-    this.approve,
-    this.reject,
+    this.onApprove,
+    this.onReject,
+    this.showApprovalActions = true,
+    this.attachedFileName,
   });
 
   @override
@@ -208,14 +215,17 @@ class _AddCommentBoxState extends State<AddCommentBox> {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showApproveDialog(context, widget.approve);
-                  },
+            if (widget.showApprovalActions) ...[
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  ElevatedButton.icon(
+                  onPressed: widget.onApprove == null
+                      ? null
+                      : () {
+                          _showApproveDialog(context, widget.onApprove!);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF146A38),
                     shape: RoundedRectangleBorder(
@@ -237,9 +247,11 @@ class _AddCommentBoxState extends State<AddCommentBox> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    _showRejectDialog(context, widget.reject);
-                  },
+                  onPressed: widget.onReject == null
+                      ? null
+                      : () {
+                          _showRejectDialog(context, widget.onReject!);
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFC62828),
                     shape: RoundedRectangleBorder(
@@ -259,8 +271,9 @@ class _AddCommentBoxState extends State<AddCommentBox> {
                     ),
                   ),
                 ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
       );
@@ -293,24 +306,37 @@ class _AddCommentBoxState extends State<AddCommentBox> {
           ),
           const SizedBox(height: 6),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFD1D5DB), style: BorderStyle.solid),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: TextField(
-                    controller: widget.controller,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: "Add your Info",
-                      hintStyle: TextStyle(
-                        color: Color(0xFF9CA3AF),
-                        fontSize: 14,
-                      ),
+                child: TextField(
+                  controller: widget.controller,
+                  keyboardType: TextInputType.multiline,
+                  textInputAction: TextInputAction.newline,
+                  textCapitalization: TextCapitalization.sentences,
+                  minLines: 2,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText: "Add your Info",
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 14,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xFF146A38)),
                     ),
                   ),
                 ),
@@ -331,6 +357,27 @@ class _AddCommentBoxState extends State<AddCommentBox> {
               ),
             ],
           ),
+          if (widget.attachedFileName != null &&
+              widget.attachedFileName!.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.attach_file, size: 16, color: Color(0xFF146A38)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    widget.attachedFileName!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF146A38),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 8),
           const Text(
             "Note : This Option is Enabled based on the Access",
@@ -384,10 +431,15 @@ class _AddCommentBoxState extends State<AddCommentBox> {
     );
   }
 
-  void _showApproveDialog(BuildContext context, VoidCallback? onApprove) {
-    showDialog(
+  void _showApproveDialog(
+    BuildContext context,
+    Future<void> Function(String comment) onApprove,
+  ) {
+    showDialog<void>(
       context: context,
-      builder: (ctx) {
+      useRootNavigator: true,
+      barrierDismissible: true,
+      builder: (dialogContext) {
         return _ActionDialog(
           title: "Approve Request",
           iconBg: const Color(0xFFD1FADF),
@@ -396,39 +448,38 @@ class _AddCommentBoxState extends State<AddCommentBox> {
           message: "Are you sure you want to Approve this Request ?",
           primaryBtnText: "Approve",
           primaryBtnColor: const Color(0xFF146A38),
-          onPrimaryTap: () {
-            onApprove?.call();
-            Navigator.of(ctx).pop();
-          },
+          onConfirm: onApprove,
         );
       },
     );
   }
 
-  void _showRejectDialog(BuildContext context, VoidCallback? onReject) {
-    showDialog(
+  void _showRejectDialog(
+    BuildContext context,
+    Future<void> Function(String comment) onReject,
+  ) {
+    showDialog<void>(
       context: context,
-      builder: (ctx) {
+      useRootNavigator: true,
+      barrierDismissible: true,
+      builder: (dialogContext) {
         return _ActionDialog(
           title: "Reject Request",
           iconBg: const Color(0xFFFEE4E2),
           iconColor: const Color(0xFFD92D20),
           iconData: Icons.delete_outline,
-          message: "Are you sure you want to delete this Request ?",
+          message: "Are you sure you want to Reject this Request ?",
           primaryBtnText: "Reject",
           primaryBtnColor: const Color(0xFFC62828),
           warningText: "This action cannot be undone",
-          onPrimaryTap: () {
-            onReject?.call();
-            Navigator.of(ctx).pop();
-          },
+          onConfirm: onReject,
         );
       },
     );
   }
 }
 
-class _ActionDialog extends StatelessWidget {
+class _ActionDialog extends StatefulWidget {
   final String title;
   final Color iconBg;
   final Color iconColor;
@@ -437,7 +488,7 @@ class _ActionDialog extends StatelessWidget {
   final String primaryBtnText;
   final Color primaryBtnColor;
   final String? warningText;
-  final VoidCallback onPrimaryTap;
+  final Future<void> Function(String comment) onConfirm;
 
   const _ActionDialog({
     required this.title,
@@ -447,131 +498,199 @@ class _ActionDialog extends StatelessWidget {
     required this.message,
     required this.primaryBtnText,
     required this.primaryBtnColor,
+    required this.onConfirm,
     this.warningText,
-    required this.onPrimaryTap,
   });
 
   @override
+  State<_ActionDialog> createState() => _ActionDialogState();
+}
+
+class _ActionDialogState extends State<_ActionDialog> {
+  late final TextEditingController _remarksController;
+  late final FocusNode _remarksFocusNode;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _remarksController = TextEditingController();
+    _remarksFocusNode = FocusNode();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _remarksFocusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _remarksFocusNode.dispose();
+    _remarksController.dispose();
+    super.dispose();
+  }
+
+  void _closeDialog() {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  Future<void> _handleConfirm() async {
+    if (_isSubmitting) return;
+    _isSubmitting = true;
+
+    final comment = _remarksController.text.trim();
+    final onConfirm = widget.onConfirm;
+    _closeDialog();
+    await Future<void>.delayed(Duration.zero);
+    await onConfirm(comment);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+
     return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: Colors.black87,
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      color: Colors.black87,
+                    ),
                   ),
+                  IconButton(
+                    onPressed: _closeDialog,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: const Icon(Icons.close, color: Colors.black54, size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: widget.iconBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(widget.iconData, color: widget.iconColor, size: 28),
                 ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, color: Colors.black54, size: 20),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: Colors.black87,
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(8),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "Remarks",
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
                 ),
-                child: Icon(iconData, color: iconColor, size: 28),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Remarks",
-              style: TextStyle(
-                color: Color(0xFF6B7280),
-                fontWeight: FontWeight.w500,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              height: 44,
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFD1D5DB), style: BorderStyle.solid),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: const TextField(
+              const SizedBox(height: 6),
+              TextField(
+                controller: _remarksController,
+                focusNode: _remarksFocusNode,
+                autofocus: true,
+                enableInteractiveSelection: true,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                textCapitalization: TextCapitalization.sentences,
+                minLines: 2,
+                maxLines: 4,
                 decoration: InputDecoration(
-                  border: InputBorder.none,
                   hintText: "Add your Remark",
-                  hintStyle: TextStyle(
+                  hintStyle: const TextStyle(
                     color: Color(0xFF9CA3AF),
                     fontSize: 14,
                   ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xFF146A38)),
+                  ),
                 ),
               ),
-            ),
-            if (warningText != null) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  warningText!,
-                  style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFD1D5DB)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    minimumSize: const Size(100, 40),
-                  ),
-                  icon: const Icon(Icons.cancel_outlined, color: Colors.black87, size: 18),
-                  label: const Text(
-                    "Cancel",
-                    style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: onPrimaryTap,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBtnColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    elevation: 0,
-                    minimumSize: const Size(110, 40),
-                  ),
-                  icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
-                  label: Text(
-                    primaryBtnText,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              if (widget.warningText != null) ...[
+                const SizedBox(height: 8),
+                Center(
+                  child: Text(
+                    widget.warningText!,
+                    style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
                   ),
                 ),
               ],
-            ),
-          ],
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isSubmitting ? null : _closeDialog,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFD1D5DB)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      minimumSize: const Size(100, 40),
+                    ),
+                    icon: const Icon(Icons.cancel_outlined, color: Colors.black87, size: 18),
+                    label: const Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _handleConfirm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.primaryBtnColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      elevation: 0,
+                      minimumSize: const Size(110, 40),
+                    ),
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                    label: Text(
+                      widget.primaryBtnText,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -620,14 +739,13 @@ class CommentsRoutingOverview extends StatelessWidget {
             ...entries.map((entry) => CommentEntry(data: entry)),
             AddCommentBox(
               controller: controller,
+              showApprovalActions: false,
               onAttach: () {
                 /* Attach callback */
               },
               onSend: () {
                 /* Send callback */
               },
-              approve: () {},
-              reject: () {},
             ),
           ],
         ),

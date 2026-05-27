@@ -16,6 +16,58 @@ import 'package:code_setup/utils/app_extensions/app_extension.dart';
 import 'package:dio/dio.dart';
 
 class FinancialServicesRepoImpl implements FinancialServicesRepo {
+  String _extractErrorMessage(
+    dynamic responseData, {
+    String fallback = 'Unexpected error occurred',
+  }) {
+    if (responseData == null) return fallback;
+    if (responseData is String) {
+      final trimmed = responseData.trim();
+      return trimmed.isEmpty ? fallback : trimmed;
+    }
+
+    if (responseData is Map) {
+      final flattened = <String>[];
+
+      void addFlattened(dynamic v) {
+        if (v == null) return;
+        if (v is String) {
+          final s = v.trim();
+          if (s.isNotEmpty) flattened.add(s);
+          return;
+        }
+        if (v is Iterable) {
+          for (final item in v) {
+            addFlattened(item);
+          }
+          return;
+        }
+        if (v is Map) {
+          for (final entry in v.entries) {
+            addFlattened(entry.value);
+          }
+          return;
+        }
+        // Numbers/booleans/etc.
+        flattened.add(v.toString());
+      }
+
+      // Prefer common keys first, but also flatten everything as a fallback
+      addFlattened(responseData['message']);
+      addFlattened(responseData['error']);
+      addFlattened(responseData['detail']);
+      addFlattened(responseData['errors']);
+
+      if (flattened.isEmpty) {
+        addFlattened(responseData);
+      }
+
+      return flattened.isNotEmpty ? flattened.join('\n') : fallback;
+    }
+
+    return fallback;
+  }
+
   @override
   Future<void> createPaySlipRequest(Map<String, dynamic> data) async {
     try {
@@ -25,19 +77,22 @@ class FinancialServicesRepoImpl implements FinancialServicesRepo {
           ApiEndPoint.payslipRequest,
           data: data,
         );
-        if (response.statusCode == 200 && response.data != null) {
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            response.data != null) {
           // Construct AttendanceData from JSON
           ShowFlutterToast().showFlutterToastSuccess(response.data['message']);
         } else {
-          final errorMessage =
-              response.data?['message'] ?? 'Unexpected error occurred';
+          final errorMessage = _extractErrorMessage(response.data);
           throw ApiException(errorMessage);
         }
       }
       return;
     } on DioException catch (error) {
       log('caught error');
-      final message = error.response?.data['message'] ?? error.message;
+      final message = _extractErrorMessage(
+        error.response?.data,
+        fallback: error.message ?? 'Unexpected error occurred',
+      );
       throw ApiException(message);
     } catch (e) {
       log('error creating pay slip requset $e');
@@ -58,15 +113,17 @@ class FinancialServicesRepoImpl implements FinancialServicesRepo {
             response.data != null) {
           ShowFlutterToast().showFlutterToastSuccess(response.data['message']);
         } else {
-          final errorMessage =
-              response.data?['message'] ?? 'Unexpected error occurred';
+          final errorMessage = _extractErrorMessage(response.data);
           throw ApiException(errorMessage);
         }
       }
       return;
     } on DioException catch (error) {
       log('caught error');
-      final message = error.response?.data['message'] ?? error.message;
+      final message = _extractErrorMessage(
+        error.response?.data,
+        fallback: error.message ?? 'Unexpected error occurred',
+      );
       throw ApiException(message);
     } catch (e) {
       log('error creating salary certificate requset $e');
@@ -83,18 +140,23 @@ class FinancialServicesRepoImpl implements FinancialServicesRepo {
           ApiEndPoint.createChangeBaankAccountRequest,
           data: data,
         );
-        if (response.statusCode == 200 && response.data != null) {
-          ShowFlutterToast().showFlutterToastSuccess(response.data['message']);
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            response.data != null) {
+          ShowFlutterToast().showFlutterToastSuccess(
+            response.data['message'] ?? 'Request submitted successfully',
+          );
         } else {
-          final errorMessage =
-              response.data?['message'] ?? 'Unexpected error occurred';
+          final errorMessage = _extractErrorMessage(response.data);
           throw ApiException(errorMessage);
         }
       }
       return;
     } on DioException catch (error) {
       log('caught error');
-      final message = error.response?.data['message'] ?? error.message;
+      final message = _extractErrorMessage(
+        error.response?.data,
+        fallback: error.message ?? 'Unexpected error occurred',
+      );
       throw ApiException(message);
     } catch (e) {
       log('error changing bank account $e');
@@ -410,15 +472,17 @@ class FinancialServicesRepoImpl implements FinancialServicesRepo {
           // Construct AttendanceData from JSON
           ShowFlutterToast().showFlutterToastSuccess(response.data['message']);
         } else {
-          final errorMessage =
-              response.data?['message'] ?? 'Unexpected error occurred';
+          final errorMessage = _extractErrorMessage(response.data);
           throw ApiException(errorMessage);
         }
       }
       return;
     } on DioException catch (error) {
       log('caught error');
-      final message = error.response?.data['message'] ?? error.message;
+      final message = _extractErrorMessage(
+        error.response?.data,
+        fallback: error.message ?? 'Unexpected error occurred',
+      );
       throw ApiException(message);
     } catch (e) {
       log('error creating allowance requset $e');
@@ -552,6 +616,69 @@ class FinancialServicesRepoImpl implements FinancialServicesRepo {
       throw ApiException(message);
     } catch (e) {
       log('error creating allowance requset $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> approveFinancialRequest(
+    int id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.post(
+          ApiEndPoint.financialServiceApproveRequest(id),
+          data: data,
+        );
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            response.data != null) {
+          ShowFlutterToast().showFlutterToastSuccess(
+            response.data['message'] ?? 'Request approved successfully',
+          );
+        } else {
+          final errorMessage =
+              response.data?['message'] ?? 'Unexpected error occurred';
+          throw ApiException(errorMessage);
+        }
+      }
+    } on DioException catch (error) {
+      log('caught error');
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error approving financial request $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> rejectFinancialRequest(int id, Map<String, dynamic> data) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.post(
+          ApiEndPoint.financialServiceRejectRequest(id),
+          data: data,
+        );
+        if ((response.statusCode == 200 || response.statusCode == 201) &&
+            response.data != null) {
+          ShowFlutterToast().showFlutterToastSuccess(
+            response.data['message'] ?? 'Request rejected successfully',
+          );
+        } else {
+          final errorMessage =
+              response.data?['message'] ?? 'Unexpected error occurred';
+          throw ApiException(errorMessage);
+        }
+      }
+    } on DioException catch (error) {
+      log('caught error');
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error rejecting financial request $e');
       throw ApiException(e.toString());
     }
   }

@@ -20,8 +20,17 @@ class FinanceApprovalCard extends ConsumerStatefulWidget {
 }
 
 class _FinanceApprovalCardState extends ConsumerState<FinanceApprovalCard> {
-  int selectedTab = 0; // 0=My Requests, 1=Action Items
   int currentPage = 1;
+
+  int get selectedTab => widget.state.requestListTabIndex;
+
+  @override
+  void didUpdateWidget(covariant FinanceApprovalCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.state.requestListTabIndex != widget.state.requestListTabIndex) {
+      currentPage = 1;
+    }
+  }
 
   List<FinancialServiceRequestItem> get currentItems {
     int pageSize = selectedTab == 0
@@ -46,10 +55,9 @@ class _FinanceApprovalCardState extends ConsumerState<FinanceApprovalCard> {
 
   void onTabChange(int idx) {
     setState(() {
-      selectedTab = idx;
       currentPage = 1;
     });
-    widget.stateController.toggleViewMode(idx == 1);
+    widget.stateController.setRequestListTab(idx);
   }
 
   @override

@@ -1,15 +1,11 @@
 part of '../view.dart';
 
 class _AttendanceComment extends StatelessWidget {
-  final _ViewState state;
-  final _VsController stateController;
+  final _AttendanceDetailsController stateController;
   final List<CommentEntryModel> entries;
-  // final TextEditingController controller = TextEditingController();
 
-  _AttendanceComment({
-    super.key,
+  const _AttendanceComment({
     required this.entries,
-    required this.state,
     required this.stateController,
   });
 
@@ -21,7 +17,6 @@ class _AttendanceComment extends StatelessWidget {
 
     return Card(
       color: currentTheme.colors.onPrimary,
-      // margin: const EdgeInsets.all(10),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
       elevation: 0,
       child: Padding(
@@ -31,10 +26,10 @@ class _AttendanceComment extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.history, color: Colors.black87, size: 18),
-                SizedBox(width: 8),
+                const Icon(Icons.history, color: Colors.black87, size: 18),
+                const SizedBox(width: 8),
                 Text(
-                  "Comments / Routing Overview",
+                  'Comments / Routing Overview',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: currentTheme.fontSizes.s16,
@@ -44,19 +39,15 @@ class _AttendanceComment extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             const Divider(),
-            // Comments List
             ...entries.map((entry) => CommentEntry(data: entry)),
             AddCommentBox(
               controller: stateController.commentController,
-              onAttach: () {
-                /* Attach callback */
-              },
-              onSend: () {
-                /* Send callback */
-                stateController.addCommentInFinRequest();
-              },
-              approve: () {},
-              reject: () {},
+              showApprovalActions: stateController.canApproveOrReject,
+              attachedFileName: stateController.pendingFileName,
+              onAttach: stateController.pickAndUploadAttachment,
+              onSend: stateController.addCommentInAttendanceRequest,
+              onApprove: stateController.approveRequest,
+              onReject: stateController.rejectRequest,
             ),
           ],
         ),

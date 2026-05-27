@@ -67,6 +67,7 @@ class AppRouter extends RootStackRouter {
       page: UpdateAttendanceDetailsRoute.page,
       path: RouteNames.updateAttendanceDetails,
     ),
+    AutoRoute(page: StayAfterWorkingHoursRoute.page),
     AutoRoute(
       page: HelpDeskDetailsRoute.page,
       path: RouteNames.helpdeskDetailsScreen,
@@ -85,8 +86,7 @@ class AppRouter extends RootStackRouter {
       children: [
         AutoRoute(page: UpdateAttendanceRecordRoute.page),
         AutoRoute(page: LeaveRequestRoute.page),
-        AutoRoute(page: HolidaysRoute.page),
-        AutoRoute(page: AppointmentsRoute.page),
+        AutoRoute(page: StayAfterWorkingHoursRoute.page),
       ],
     ),
 

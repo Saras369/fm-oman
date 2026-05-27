@@ -47,14 +47,13 @@ class _PassportComment extends StatelessWidget {
             // but the add logic inside the controller simply clears the field.
             AddCommentBox(
               controller: stateController.commentController,
+              showApprovalActions: false,
               onAttach: () {
                 /* Attach callback */
               },
               onSend: () {
                 stateController.addCommentInPassportRequest();
               },
-              approve: () {},
-              reject: () {},
             ),
           ],
         ),

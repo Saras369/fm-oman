@@ -35,20 +35,21 @@ class AuthRepositpryImpl implements AuthRepository {
   }
 
   @override
-  Future<UserData?> getUserDataById() async {
+  Future<UserData?> getUserDataById({int? userId}) async {
     try {
+      final resolvedUserId =
+          userId ?? KAppX.globalProvider.read(userProvider)?.userId;
+      if (resolvedUserId == null || resolvedUserId == 0) return null;
+
       final client = await KAppX.network.secureClient();
       if (client != null) {
         final response = await client.get(
-          ApiEndPoint.getUserById(
-            '${KAppX.globalProvider.read(userProvider)?.userId ?? 0}',
-          ),
+          ApiEndPoint.getUserById('$resolvedUserId'),
         );
         if (response.statusCode == 200 && response.data != null) {
           final jsonMap = Map<String, dynamic>.from(response.data);
-          // Construct AttendanceData from JSON
-          final breakdownData = UserData.fromJson(jsonMap['data'] ?? {});
-          return breakdownData;
+          final model = GetUserByIdModel.fromJson(jsonMap);
+          return model.data;
         } else {
           final errorMessage =
               response.data?['message'] ?? 'Unexpected error occurred';

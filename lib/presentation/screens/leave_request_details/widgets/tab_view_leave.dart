@@ -1,11 +1,12 @@
 part of '../view.dart';
 
-class _TabViewSecurity extends StatelessWidget {
-  final _SecurityDetailsState state;
-  final _SecurityDetailsController stateController;
+class TabViewLeave extends StatelessWidget {
+  final _ViewState state;
+  final _VsController stateController;
   final Widget? mobileMiddleWidget;
 
-  const _TabViewSecurity({
+  const TabViewLeave({
+    super.key,
     required this.state,
     required this.stateController,
     this.mobileMiddleWidget,
@@ -17,10 +18,10 @@ class _TabViewSecurity extends StatelessWidget {
       'Request Details',
       'Routing History',
       'Attachments',
-      'Workflows',
+      'Workflow',
     ];
 
-    const iconMapping = <IconData>[
+    const iconMapping = [
       Icons.description_outlined,
       Icons.history_outlined,
       Icons.attach_file,
@@ -34,12 +35,9 @@ class _TabViewSecurity extends StatelessWidget {
       pageBuilder: (context, index) {
         switch (index) {
           case 0:
-            return _SecurityRequestDetailsTab(
-              state: state,
-              title: stateController.params.title,
-            );
+            return LeaveRequestDetailsTab(state: state);
           case 1:
-            return _SecurityCommentsList(
+            return _LeaveCommentsList(
               entries: stateController.createChatList(),
               stateController: stateController,
             );
@@ -52,10 +50,7 @@ class _TabViewSecurity extends StatelessWidget {
               steps: stateController.createWorkflowList(),
             );
           default:
-            return _SecurityRequestDetailsTab(
-              state: state,
-              title: stateController.params.title,
-            );
+            return LeaveRequestDetailsTab(state: state);
         }
       },
     );

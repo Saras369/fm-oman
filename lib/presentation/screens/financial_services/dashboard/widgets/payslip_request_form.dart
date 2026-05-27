@@ -2,17 +2,18 @@ part of '../view.dart';
 
 class PayslipRequestForm extends ConsumerWidget {
   final String title;
-  final _ViewState state;
+  final _VSControllerParams params;
   final _VSController stateController;
   const PayslipRequestForm({
     super.key,
     required this.title,
-    required this.state,
+    required this.params,
     required this.stateController,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(_vsProvider(params));
     final currentTheme = KAppX.globalProvider
         .read(KAppX.theme.current)
         .themeBox;
@@ -26,7 +27,7 @@ class PayslipRequestForm extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               PayslipRequestHeader(
-                onClose: () => KAppX.router.pop(),
+                onClose: () => KAppX.extendedRouter.dialog.closeKDialog(),
                 title: title,
               ),
               SingleChildScrollView(
@@ -35,40 +36,46 @@ class PayslipRequestForm extends ConsumerWidget {
                     if (title == 'Request for Payslip')
                       Column(
                         children: [
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: 15.toAutoScaledHeight,
-                            ),
-                            child: KTextField(
-                              controller: stateController.monthController,
-                              fieldHeadingText: 'Select Month *',
-                              hintText: 'Select',
-                              readOnly: true,
-                              onTap: stateController.onSelectMonth,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty
-                                  ? 'Please select month'
-                                  : null),
-                            ),
+                          KDropdownField<int>(
+                            value: stateController.selectedPayslipMonthValue,
+                            fieldHeadingText: 'Select Month',
+                            isRequired: true,
+                            hintText: 'Select',
+                            items: stateController.eligiblePayslipMonthsForSelectedYear
+                                .map(
+                                  (month) => KDropdownItem<int>(
+                                    value: month,
+                                    child: Text(
+                                      stateController.payslipMonthLabel(month),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            errorText: state.isValidate &&
+                                    state.selectedMonth.isEmpty
+                                ? 'Please select month'
+                                : null,
+                            onChanged: stateController.onSelectPayslipMonth,
                           ),
-
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom: 15.toAutoScaledHeight,
-                            ),
-                            child: KTextField(
-                              controller: stateController.yearController,
-                              fieldHeadingText: 'Select Year *',
-                              hintText: 'Select',
-                              readOnly: true,
-                              onTap: stateController.onSelectMonth,
-                              validator: (value) =>
-                                  (value == null || value.isEmpty
-                                  ? 'Please select year'
-                                  : null),
-                            ),
+                          KDropdownField<int>(
+                            value: stateController.selectedPayslipYearValue,
+                            fieldHeadingText: 'Select Year',
+                            isRequired: true,
+                            hintText: 'Select',
+                            items: stateController.eligiblePayslipYears
+                                .map(
+                                  (year) => KDropdownItem<int>(
+                                    value: year,
+                                    child: Text(year.toString()),
+                                  ),
+                                )
+                                .toList(),
+                            errorText: state.isValidate &&
+                                    state.selectedYear.isEmpty
+                                ? 'Please select year'
+                                : null,
+                            onChanged: stateController.onSelectPayslipYear,
                           ),
-
                           Padding(
                             padding: EdgeInsets.only(
                               bottom: 15.toAutoScaledHeight,
@@ -188,7 +195,8 @@ class PayslipRequestHeader extends StatelessWidget {
               ),
               IconButton(
                 icon: const Icon(Icons.close, size: 20),
-                onPressed: onClose ?? () => Navigator.of(context).maybePop(),
+                onPressed:
+                    onClose ?? () => KAppX.extendedRouter.dialog.closeKDialog(),
                 splashRadius: 18,
                 tooltip: "Close",
               ),

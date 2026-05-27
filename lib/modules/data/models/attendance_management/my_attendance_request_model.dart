@@ -1,5 +1,15 @@
 import 'package:code_setup/modules/data/models/all_services_model.dart';
 
+String? _asString(dynamic v) {
+  if (v == null) return null;
+  return v is String ? v : v.toString();
+}
+
+DateTime? _asDate(dynamic v) {
+  if (v == null) return null;
+  return DateTime.tryParse(v.toString());
+}
+
 /// Top-level model
 class AttendanceRequestModel {
   String? status;
@@ -298,27 +308,27 @@ class CreatedByUser {
   });
 
   factory CreatedByUser.fromJson(Map<String, dynamic> json) => CreatedByUser(
-    createdBy: json['created_by'] as String?,
-    updatedBy: json['updated_by'] as String?,
+    createdBy: _asString(json['created_by']),
+    updatedBy: _asString(json['updated_by']),
     id: json['id'] is int
         ? json['id'] as int
         : (json['id'] != null ? int.tryParse('${json['id']}') : null),
-    employeeId: json['employee_id'] as String?,
-    employeeName: json['employee_name'] as String?,
-    employeeArabicName: json['employee_arabic_name'] as String?,
-    dateOfBirth: json['date_of_birth'] as String?,
-    regionOfBirth: json['region_of_birth'] as String?,
-    countryOfBirth: json['country_of_birth'] as String?,
-    dateOfJoining: json['date_of_joining'] as String?,
-    lastPromotionDate: json['last_promotion_date'] as String?,
-    gender: json['gender'] as String?,
-    maritalStatus: json['marital_status'] as String?,
-    nationality: json['nationality'] as String?,
-    email: json['email'] as String?,
-    bloodGroup: json['blood_group'] as String?,
-    nationalId: json['national_id'] as String?,
-    mobile: json['mobile'] as String?,
-    officeNumber: json['office_number'] as String?,
+    employeeId: _asString(json['employee_id']),
+    employeeName: _asString(json['employee_name']),
+    employeeArabicName: _asString(json['employee_arabic_name']),
+    dateOfBirth: _asString(json['date_of_birth']),
+    regionOfBirth: _asString(json['region_of_birth']),
+    countryOfBirth: _asString(json['country_of_birth']),
+    dateOfJoining: _asString(json['date_of_joining']),
+    lastPromotionDate: _asString(json['last_promotion_date']),
+    gender: _asString(json['gender']),
+    maritalStatus: _asString(json['marital_status']),
+    nationality: _asString(json['nationality']),
+    email: _asString(json['email']),
+    bloodGroup: _asString(json['blood_group']),
+    nationalId: _asString(json['national_id']),
+    mobile: _asString(json['mobile']),
+    officeNumber: _asString(json['office_number']),
     department: json['department'] is int
         ? json['department'] as int
         : (json['department'] != null
@@ -330,8 +340,8 @@ class CreatedByUser {
     grade: json['grade'] is int
         ? json['grade'] as int
         : (json['grade'] != null ? int.tryParse('${json['grade']}') : null),
-    location: json['location'] as String?,
-    country: json['country'] as String?,
+    location: _asString(json['location']),
+    country: _asString(json['country']),
     isAdmin: json['is_admin'] as bool?,
     division: json['division'] is int
         ? json['division'] as int
@@ -343,36 +353,38 @@ class CreatedByUser {
         : (json['reporting_to'] != null
               ? int.tryParse('${json['reporting_to']}')
               : null),
-    address: json['address'] as String?,
-    residentialStatus: json['residential_status'] as String?,
-    religion: json['religion'] as String?,
-    designation: json['designation'] == null
-        ? null
-        : Designation.fromJson(json['designation'] as Map<String, dynamic>),
-    avatar: json['avatar'] as String?,
-    passportNumber: json['passport_number'] as String?,
-    personalEmail: json['personal_email'] as String?,
-    extensionNumber: json['extension_number'] as String?,
-    faxNumber: json['fax_number'] as String?,
-    diplomaticName: json['diplomatic_name'] as String?,
+    address: _asString(json['address']),
+    residentialStatus: _asString(json['residential_status']),
+    religion: _asString(json['religion']),
+    designation: () {
+      final raw = json['designation'];
+      if (raw == null) return null;
+      if (raw is Map<String, dynamic>) return Designation.fromJson(raw);
+      if (raw is Map) return Designation.fromJson(Map<String, dynamic>.from(raw));
+      // Some endpoints embed only designation id (int/string) instead of object.
+      final id = raw is int ? raw : int.tryParse('$raw');
+      return id == null ? null : Designation(id: id);
+    }(),
+    avatar: _asString(json['avatar']),
+    passportNumber: _asString(json['passport_number']),
+    personalEmail: _asString(json['personal_email']),
+    extensionNumber: _asString(json['extension_number']),
+    faxNumber: _asString(json['fax_number']),
+    diplomaticName: _asString(json['diplomatic_name']),
     civilEmployeeId: json['civil_employee_id'] is int
         ? json['civil_employee_id'] as int
         : (json['civil_employee_id'] != null
               ? int.tryParse('${json['civil_employee_id']}')
               : null),
-    qualification: json['qualification'] as String?,
-    fatherName: json['father_name'] as String?,
-    spouseName: json['spouse_name'] as String?,
-    children1Name: json['children1_name'] as String?,
-    children2Name: json['children2_name'] as String?,
-    languagePreferences: json['language_preferences'] as String?,
-    category: json['category'] as String?,
-    createdAt: json['created_at'] != null
-        ? DateTime.tryParse(json['created_at'] as String)
-        : null,
-    updatedAt: json['updated_at'] != null
-        ? DateTime.tryParse(json['updated_at'] as String)
-        : null,
+    qualification: _asString(json['qualification']),
+    fatherName: _asString(json['father_name']),
+    spouseName: _asString(json['spouse_name']),
+    children1Name: _asString(json['children1_name']),
+    children2Name: _asString(json['children2_name']),
+    languagePreferences: _asString(json['language_preferences']),
+    category: _asString(json['category']),
+    createdAt: _asDate(json['created_at']),
+    updatedAt: _asDate(json['updated_at']),
   );
 
   Map<String, dynamic> toJson() => {
@@ -627,12 +639,107 @@ class Service {
 }
 
 class ChatMessage {
-  // Your sample had empty array; keep minimal fields or adapt as needed
-  ChatMessage();
+  String? createdBy;
+  String? updatedBy;
+  int? id;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+  int? requestId;
+  int? serviceId;
+  int? subServiceId;
+  int? userId;
+  int? roleId;
+  String? message;
+  String? messageType;
+  String? status;
+  String? fileUrl;
+  String? fileName;
+  String? fileType;
+  CreatedByUser? user;
 
-  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage();
+  ChatMessage({
+    this.createdBy,
+    this.updatedBy,
+    this.id,
+    this.createdAt,
+    this.updatedAt,
+    this.requestId,
+    this.serviceId,
+    this.subServiceId,
+    this.userId,
+    this.roleId,
+    this.message,
+    this.messageType,
+    this.status,
+    this.fileUrl,
+    this.fileName,
+    this.fileType,
+    this.user,
+  });
 
-  Map<String, dynamic> toJson() => {};
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+    createdBy: json['created_by']?.toString(),
+    updatedBy: json['updated_by']?.toString(),
+    id: json['id'] is int
+        ? json['id'] as int
+        : (json['id'] != null ? int.tryParse('${json['id']}') : null),
+    createdAt: json['created_at'] != null
+        ? DateTime.tryParse(json['created_at'] as String)
+        : null,
+    updatedAt: json['updated_at'] != null
+        ? DateTime.tryParse(json['updated_at'] as String)
+        : null,
+    requestId: json['request_id'] is int
+        ? json['request_id'] as int
+        : (json['request_id'] != null
+              ? int.tryParse('${json['request_id']}')
+              : null),
+    serviceId: json['service_id'] is int
+        ? json['service_id'] as int
+        : (json['service_id'] != null
+              ? int.tryParse('${json['service_id']}')
+              : null),
+    subServiceId: json['sub_service_id'] is int
+        ? json['sub_service_id'] as int
+        : (json['sub_service_id'] != null
+              ? int.tryParse('${json['sub_service_id']}')
+              : null),
+    userId: json['user_id'] is int
+        ? json['user_id'] as int
+        : (json['user_id'] != null ? int.tryParse('${json['user_id']}') : null),
+    roleId: json['role_id'] is int
+        ? json['role_id'] as int
+        : (json['role_id'] != null ? int.tryParse('${json['role_id']}') : null),
+    message: json['message'] as String? ?? json['content'] as String?,
+    messageType: json['messageType'] as String? ?? json['message_type'] as String?,
+    status: json['status'] as String?,
+    fileUrl: json['file_url'] as String?,
+    fileName: json['file_name'] as String?,
+    fileType: json['file_type'] as String?,
+    user: json['user'] == null
+        ? null
+        : CreatedByUser.fromJson(json['user'] as Map<String, dynamic>),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'created_by': createdBy,
+    'updated_by': updatedBy,
+    'id': id,
+    'created_at': createdAt?.toIso8601String(),
+    'updated_at': updatedAt?.toIso8601String(),
+    'request_id': requestId,
+    'service_id': serviceId,
+    'sub_service_id': subServiceId,
+    'user_id': userId,
+    'role_id': roleId,
+    'message': message,
+    'messageType': messageType,
+    'status': status,
+    'file_url': fileUrl,
+    'file_name': fileName,
+    'file_type': fileType,
+    'user': user?.toJson(),
+  };
 }
 
 class WorkflowLog {
@@ -723,6 +830,11 @@ class ApprovalDetail {
   String? approvedBy;
   String? comment;
   String? approvalStatus;
+  bool? isAllowed;
+  Designation? approverRole;
+  CreatedByUser? approverUser;
+  CreatedByUser? delegateUser;
+  CreatedByUser? approvedByUser;
 
   ApprovalDetail({
     this.createdBy,
@@ -742,11 +854,16 @@ class ApprovalDetail {
     this.approvedBy,
     this.comment,
     this.approvalStatus,
+    this.isAllowed,
+    this.approverRole,
+    this.approverUser,
+    this.delegateUser,
+    this.approvedByUser,
   });
 
   factory ApprovalDetail.fromJson(Map<String, dynamic> json) => ApprovalDetail(
-    createdBy: json['created_by'] as String?,
-    updatedBy: json['updated_by'] as String?,
+    createdBy: _asString(json['created_by']),
+    updatedBy: _asString(json['updated_by']),
     id: json['id'] is int
         ? json['id'] as int
         : (json['id'] != null ? int.tryParse('${json['id']}') : null),
@@ -799,9 +916,51 @@ class ApprovalDetail {
         : (json['delegate_user_id'] != null
               ? int.tryParse('${json['delegate_user_id']}')
               : null),
-    approvedBy: json['approved_by'] as String?,
-    comment: json['comment'] as String?,
-    approvalStatus: json['approval_status'] as String?,
+    approvedBy: _asString(json['approved_by']),
+    comment: _asString(json['comment']),
+    approvalStatus: _asString(json['approval_status']),
+    isAllowed: () {
+      final v = json['is_allowed'];
+      if (v == null) return null;
+      if (v is bool) return v;
+      if (v is int) return v == 1;
+      if (v is String) {
+        final s = v.toLowerCase().trim();
+        if (s == 'true' || s == '1') return true;
+        if (s == 'false' || s == '0') return false;
+      }
+      return null;
+    }(),
+    approverRole: () {
+      final raw = json['approver_role'];
+      if (raw == null) return null;
+      if (raw is Map<String, dynamic>) return Designation.fromJson(raw);
+      if (raw is Map) return Designation.fromJson(Map<String, dynamic>.from(raw));
+      if (raw is int) return Designation(id: raw);
+      final id = int.tryParse(raw.toString());
+      return id == null ? null : Designation(id: id);
+    }(),
+    approverUser: () {
+      final raw = json['approver_user'];
+      if (raw == null) return null;
+      if (raw is Map<String, dynamic>) return CreatedByUser.fromJson(raw);
+      if (raw is Map) return CreatedByUser.fromJson(Map<String, dynamic>.from(raw));
+      return null;
+    }(),
+    delegateUser: () {
+      final raw = json['delegate_user'];
+      if (raw == null) return null;
+      if (raw is Map<String, dynamic>) return CreatedByUser.fromJson(raw);
+      if (raw is Map) return CreatedByUser.fromJson(Map<String, dynamic>.from(raw));
+      return null;
+    }(),
+    approvedByUser: () {
+      final raw = json['approved_by_user'];
+      if (raw == null) return null;
+      if (raw is Map<String, dynamic>) return CreatedByUser.fromJson(raw);
+      if (raw is Map) return CreatedByUser.fromJson(Map<String, dynamic>.from(raw));
+      return null;
+    }(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -822,5 +981,10 @@ class ApprovalDetail {
     'approved_by': approvedBy,
     'comment': comment,
     'approval_status': approvalStatus,
+    'is_allowed': isAllowed,
+    'approver_role': approverRole?.toJson(),
+    'approver_user': approverUser?.toJson(),
+    'delegate_user': delegateUser?.toJson(),
+    'approved_by_user': approvedByUser?.toJson(),
   };
 }

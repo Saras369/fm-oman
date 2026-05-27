@@ -62,6 +62,50 @@ List<int> _visibleFinancialSubServiceIndexes(List<SubServices> subServices) {
   return entries.map((entry) => entry.key).toList();
 }
 
+const _payslipEligibleMonthCount = 6;
+
+List<DateTime> _eligiblePayslipPeriods([DateTime? referenceDate]) {
+  final now = referenceDate ?? DateTime.now();
+  final periods = <DateTime>[];
+  var year = now.year;
+  var month = now.month - 1;
+  if (month < 1) {
+    month = 12;
+    year -= 1;
+  }
+
+  for (var i = 0; i < _payslipEligibleMonthCount; i++) {
+    periods.add(DateTime(year, month));
+    month -= 1;
+    if (month < 1) {
+      month = 12;
+      year -= 1;
+    }
+  }
+
+  return periods;
+}
+
+List<int> _eligiblePayslipYears(List<DateTime> periods) {
+  final years = periods.map((period) => period.year).toSet()
+    ..add(DateTime.now().year);
+  final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
+  return sortedYears;
+}
+
+List<int> _eligiblePayslipMonthsForYear(int year, List<DateTime> periods) {
+  final months = periods
+      .where((period) => period.year == year)
+      .map((period) => period.month)
+      .toList();
+  months.sort((a, b) => b.compareTo(a));
+  return months;
+}
+
+String _payslipMonthName(int month) {
+  return DateFormat('MMMM').format(DateTime(2000, month));
+}
+
 String _financialSubServiceDrawerLabel(SubServices subService) {
   switch (_financialSubServiceRank(subService)) {
     case 0:
@@ -113,6 +157,7 @@ class _ViewState {
   final String selectedTrendValue;
   final int selectedTrendYear;
   final int selectedSubServiceIndex;
+  final int requestListTabIndex;
 
   _ViewState({
     required this.isLoading,
@@ -139,12 +184,13 @@ class _ViewState {
     required this.selectedTrendValue,
     required this.selectedTrendYear,
     required this.selectedSubServiceIndex,
+    required this.requestListTabIndex,
   });
 
   factory _ViewState.init() {
     return _ViewState(
       isLoading: false,
-      selectedMonth: DateTime.now().month.toString(),
+      selectedMonth: '',
       selectedYear: DateTime.now().year.toString(),
       statsData: FinancialServicesStatsData(),
       trendData: FinancialServicesTrendBreakdownData(),
@@ -167,6 +213,7 @@ class _ViewState {
       selectedTrendValue: 'Yearly',
       selectedTrendYear: DateTime.now().year,
       selectedSubServiceIndex: 0,
+      requestListTabIndex: 0,
     );
   }
 
@@ -195,6 +242,7 @@ class _ViewState {
     String? selectedTrendValue,
     int? selectedTrendYear,
     int? selectedSubServiceIndex,
+    int? requestListTabIndex,
   }) {
     return _ViewState(
       isLoading: isLoading ?? this.isLoading,
@@ -225,6 +273,7 @@ class _ViewState {
       selectedTrendYear: selectedTrendYear ?? this.selectedTrendYear,
       selectedSubServiceIndex:
           selectedSubServiceIndex ?? this.selectedSubServiceIndex,
+      requestListTabIndex: requestListTabIndex ?? this.requestListTabIndex,
     );
   }
 }
@@ -381,22 +430,64 @@ class _VSController extends StateNotifier<_ViewState> {
     );
   }
 
-  Future<void> onSelectMonth() async {
-    final pickedDate = await KAppX.extendedRouter.showKDatePicker(
-      context: KAppX.currentContext,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
+  List<DateTime> get eligiblePayslipPeriods => _eligiblePayslipPeriods();
+
+  List<int> get eligiblePayslipYears =>
+      _eligiblePayslipYears(eligiblePayslipPeriods);
+
+  List<int> get eligiblePayslipMonthsForSelectedYear {
+    final selectedYear = int.tryParse(state.selectedYear);
+    if (selectedYear == null) return [];
+    return _eligiblePayslipMonthsForYear(selectedYear, eligiblePayslipPeriods);
+  }
+
+  String payslipMonthLabel(int month) => _payslipMonthName(month);
+
+  int? get selectedPayslipMonthValue {
+    final month = int.tryParse(state.selectedMonth);
+    if (month == null) return null;
+    if (!eligiblePayslipMonthsForSelectedYear.contains(month)) return null;
+    return month;
+  }
+
+  int? get selectedPayslipYearValue {
+    final year = int.tryParse(state.selectedYear);
+    if (year == null) return null;
+    if (!eligiblePayslipYears.contains(year)) return null;
+    return year;
+  }
+
+  void resetPayslipSelection() {
+    state = state.copyWith(
+      selectedYear: DateTime.now().year.toString(),
+      selectedMonth: '',
+      isValidate: false,
     );
-    if (pickedDate != null) {
-      final month = pickedDate.month.toString().padLeft(2, '0');
-      state = state.copyWith(
-        selectedMonth: month,
-        selectedYear: pickedDate.year.toString(),
-      );
-      monthController.text = month;
-      yearController.text = pickedDate.year.toString();
-    }
+    reasonController.clear();
+  }
+
+  void onSelectPayslipYear(int? year) {
+    if (year == null) return;
+
+    final validMonths = _eligiblePayslipMonthsForYear(
+      year,
+      eligiblePayslipPeriods,
+    );
+    final selectedMonth = int.tryParse(state.selectedMonth);
+    final monthStillValid =
+        selectedMonth != null && validMonths.contains(selectedMonth);
+
+    state = state.copyWith(
+      selectedYear: year.toString(),
+      selectedMonth: monthStillValid ? state.selectedMonth : '',
+      isValidate: false,
+    );
+  }
+
+  void onSelectPayslipMonth(int? month) {
+    if (month == null) return;
+
+    state = state.copyWith(selectedMonth: month.toString(), isValidate: false);
   }
 
   Future<void> onSelectEffectiveFrom() async {
@@ -416,17 +507,24 @@ class _VSController extends StateNotifier<_ViewState> {
     _ViewState state,
     _VSController stateController,
   ) {
+    if (action.label == 'Request for Payslip') {
+      resetPayslipSelection();
+    }
+
     KAppX.extendedRouter.dialog.showKDialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 20.toAutoScaledWidth),
-
       builder: (context) {
         return PayslipRequestForm(
           title: action.label,
-          state: state,
+          params: params,
           stateController: stateController,
         );
       },
     );
+  }
+
+  void closeRequestFormDialog() {
+    KAppX.extendedRouter.dialog.closeKDialog();
   }
 
   void onPressCurrentSubServiceRequest(_ViewState state) {
@@ -444,6 +542,17 @@ class _VSController extends StateNotifier<_ViewState> {
   }
 
   void onPressSubmit(String title) {
+    if (title == 'Request for Payslip') {
+      final hasValidYear = int.tryParse(state.selectedYear) != null;
+      final hasValidMonth = eligiblePayslipMonthsForSelectedYear.contains(
+        int.tryParse(state.selectedMonth),
+      );
+      if (!hasValidYear || !hasValidMonth) {
+        state = state.copyWith(isValidate: true);
+        return;
+      }
+    }
+
     if (formKey.currentState?.validate() == true) {
       if (title == 'Request for Payslip') {
         createPaySlipRequest();
@@ -472,7 +581,47 @@ class _VSController extends StateNotifier<_ViewState> {
     return selectedSubServiceId;
   }
 
-  void createPaySlipRequest() {
+  Future<void> onFinancialRequestCreated() async {
+    state = state.copyWith(isApproverView: false, requestListTabIndex: 0);
+    await _refreshMyRequestsDashboardData();
+    closeRequestFormDialog();
+  }
+
+  void clearPayslipRequestForm() {
+    resetPayslipSelection();
+  }
+
+  void clearSalaryCertificateRequestForm() {
+    reasonController.clear();
+  }
+
+  void clearBankAccountChangeRequestForm() {
+    reasonController.clear();
+    existingAccountNumController.clear();
+    newAccountNumController.clear();
+    ifscController.clear();
+    accountNameController.clear();
+    effectiveFromController.clear();
+
+    // These dropdowns use internal state for submission; reset them too.
+    state = state.copyWith(
+      existingBankName: BankNameItem(),
+      newBankName: BankNameItem(),
+    );
+  }
+
+  void clearAllowanceRequestForm() {
+    reasonController.clear();
+    alllownceAmountController.clear();
+    contactNumberController.clear();
+
+    state = state.copyWith(
+      selectedCurrency: CurrencyItem(),
+      selectedAllowanceType: AllowanceTypeItem(),
+    );
+  }
+
+  Future<void> createPaySlipRequest() async {
     final data = {
       "service_id": params.serviceId,
       "sub_service_id": determineSubServiceId('Payslip Request'),
@@ -481,49 +630,64 @@ class _VSController extends StateNotifier<_ViewState> {
       "remarks": reasonController.text,
     };
 
-    financialServiceRepo.createPaySlipRequest(data).then((value) {
-      KAppX.router.pop();
-      KAppX.router.pop();
-    });
+    try {
+      await financialServiceRepo.createPaySlipRequest(data);
+      clearPayslipRequestForm();
+      await onFinancialRequestCreated();
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      ShowFlutterToast().showFlutterToastFailure('Failed to submit request');
+    }
   }
 
-  void createSalaryCertificateRequest() {
+  Future<void> createSalaryCertificateRequest() async {
     final data = {
       "service_id": params.serviceId,
       "sub_service_id": determineSubServiceId('Salary Certificate'),
       "certificate_purpose": reasonController.text,
     };
 
-    financialServiceRepo.createSalaryCertificateRequest(data).then((value) {
-      KAppX.router.pop();
-      KAppX.router.pop();
-    });
+    try {
+      await financialServiceRepo.createSalaryCertificateRequest(data);
+      clearSalaryCertificateRequestForm();
+      await onFinancialRequestCreated();
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      ShowFlutterToast().showFlutterToastFailure('Failed to submit request');
+    }
   }
 
-  void createChangeBaankAccountRequest() {
+  Future<void> createChangeBaankAccountRequest() async {
     final data = {
       "service_id": params.serviceId,
-      "sub_service_id": determineSubServiceId('Bank Account Change Request'),
+      "sub_service_id": selectedSubServiceId,
       "old_bank_name": state.existingBankName.bankName,
       "old_account_number": existingAccountNumController.text,
       "new_bank_name": state.newBankName.bankName,
       "new_account_number": newAccountNumController.text,
       "new_account_name": accountNameController.text,
       "new_branch_ifsc_code": ifscController.text,
-      "reason_for_change": reasonController.text,
-      // "remarks": reasonController.text,
+      // "reason_for_change": reasonController.text,
+      "remarks": reasonController.text,
       "effective_from_date": effectiveFromController.text,
       // "remarks":
       //     "Please process this request urgently as I need to update my payroll details",
     };
 
-    financialServiceRepo.createBankAccountChangeRequest(data).then((value) {
-      KAppX.router.pop();
-      KAppX.router.pop();
-    });
+    try {
+      await financialServiceRepo.createBankAccountChangeRequest(data);
+      clearBankAccountChangeRequestForm();
+      await onFinancialRequestCreated();
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      ShowFlutterToast().showFlutterToastFailure('Failed to submit request');
+    }
   }
 
-  void requestForAllowance() {
+  Future<void> requestForAllowance() async {
     final data = {
       "service_id": params.serviceId,
       "sub_service_id": determineSubServiceId('Allowance Request'),
@@ -535,14 +699,100 @@ class _VSController extends StateNotifier<_ViewState> {
       // "remarks": "Required for international calls"
     };
 
-    financialServiceRepo.createAllownaceRequest(data).then((value) {
-      KAppX.router.pop();
-      KAppX.router.pop();
-    });
+    try {
+      await financialServiceRepo.createAllownaceRequest(data);
+      clearAllowanceRequestForm();
+      await onFinancialRequestCreated();
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      ShowFlutterToast().showFlutterToastFailure('Failed to submit request');
+    }
+  }
+
+  void setRequestListTab(int index) {
+    toggleViewMode(index == 1);
+  }
+
+  Future<void> _refreshMyRequestsDashboardData() async {
+    final breakdownParams = {
+      'time_period': state.selectedBreakdownValue.toLowerCase(),
+      ...selectedServiceParams,
+    };
+    final trendParams = {
+      'year': state.selectedTrendYear,
+      ...selectedServiceParams,
+    };
+
+    FinancialServicesStatsData? statsData;
+    FinancialStatusBreakdownData? statusBreakdownData;
+    FinancialServicesTrendBreakdownData? trendData;
+    List<FinancialServiceRequestItem>? myRequests;
+
+    try {
+      statsData = await financialServiceRepo.fetchFinancialServicesStats(
+        selectedServiceParams,
+      );
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      debugPrint('error refreshing financial stats: $e');
+    }
+
+    try {
+      statusBreakdownData = await financialServiceRepo
+          .fetchFinancialServicesStatusBreakdown(breakdownParams);
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      debugPrint('error refreshing financial status breakdown: $e');
+    }
+
+    try {
+      trendData = await financialServiceRepo.fetchFinancialServicesTrendBreakdown(
+        trendParams,
+      );
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      debugPrint('error refreshing financial trend breakdown: $e');
+    }
+
+    try {
+      myRequests = await financialServiceRepo.fetchFinancialServiceMyRequests(
+        selectedListParams,
+      );
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      debugPrint('error refreshing financial my requests: $e');
+    }
+
+    state = state.copyWith(
+      statsData: statsData ?? state.statsData,
+      statusBreakdownData: statusBreakdownData ?? state.statusBreakdownData,
+      trendData: trendData ?? state.trendData,
+      myRequests: myRequests ?? state.myRequests,
+    );
+  }
+
+  Future<void> switchToMyRequestsTabAndRefresh() async {
+    state = state.copyWith(isApproverView: false, requestListTabIndex: 0);
+
+    try {
+      await _refreshMyRequestsDashboardData();
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      debugPrint('error refreshing financial dashboard: $e');
+    }
   }
 
   void toggleViewMode(bool isApprover) {
-    state = state.copyWith(isApproverView: isApprover);
+    state = state.copyWith(
+      isApproverView: isApprover,
+      requestListTabIndex: isApprover ? 1 : 0,
+    );
     if (isApprover) {
       fetchApproverStats();
       fetchApproverStatusBreakDownData();

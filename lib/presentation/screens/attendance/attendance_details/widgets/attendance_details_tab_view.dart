@@ -1,11 +1,11 @@
 part of '../view.dart';
 
-class _TabViewFinance extends StatelessWidget {
-  final _ViewState state;
-  final _VsController stateController;
+class _AttendanceDetailsTabView extends StatelessWidget {
+  final _AttendanceDetailsState state;
+  final _AttendanceDetailsController stateController;
   final Widget? mobileMiddleWidget;
 
-  const _TabViewFinance({
+  const _AttendanceDetailsTabView({
     required this.state,
     required this.stateController,
     this.mobileMiddleWidget,
@@ -13,14 +13,14 @@ class _TabViewFinance extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = [
+    const tabs = [
       'Request Details',
       'Routing History',
       'Attachments',
-      'Workflows',
+      'Workflow',
     ];
 
-    final iconMapping = <IconData>[
+    const iconMapping = [
       Icons.description_outlined,
       Icons.history_outlined,
       Icons.attach_file,
@@ -34,11 +34,10 @@ class _TabViewFinance extends StatelessWidget {
       pageBuilder: (context, index) {
         switch (index) {
           case 0:
-            return _RequestDetailsFinServices(state: state);
+            return _RequestDetailsAttendanceServices(state: state);
           case 1:
-            return _FinanceComment(
+            return _AttendanceComment(
               entries: stateController.createChatList(),
-              state: state,
               stateController: stateController,
             );
           case 2:
@@ -50,7 +49,7 @@ class _TabViewFinance extends StatelessWidget {
               steps: stateController.createWorkflowList(),
             );
           default:
-            return _RequestDetailsFinServices(state: state);
+            return _RequestDetailsAttendanceServices(state: state);
         }
       },
     );

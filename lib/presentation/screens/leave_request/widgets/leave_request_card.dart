@@ -49,6 +49,7 @@ class _LeaveRequestsCardMobileState extends State<LeaveRequestsCardMobile> {
     final pageSize = selectedTab == 0
         ? widget.myRequests.length
         : widget.actionItems.length;
+    if (pageSize == 0) return [];
     int start = (currentPage - 1) * pageSize;
     return list.skip(start).take(pageSize).toList();
   }
@@ -61,10 +62,12 @@ class _LeaveRequestsCardMobileState extends State<LeaveRequestsCardMobile> {
     final count = selectedTab == 0
         ? widget.myRequests.length
         : widget.actionItems.length;
+    if (pageSize == 0) return 1;
     return (count / pageSize).ceil();
   }
 
   void onTabChange(int idx) {
+    widget.stateController.onSwitchTabsInMyRequestCard(idx);
     setState(() {
       selectedTab = idx;
       currentPage = 1;
@@ -93,15 +96,28 @@ class _LeaveRequestsCardMobileState extends State<LeaveRequestsCardMobile> {
               _buildTabs(),
               const SizedBox(height: 16),
               Expanded(
-                child: ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, index) => _LeaveRequestCardMobileItem(
-                    request: items[index],
-                    state: widget.state,
-                    stateController: widget.stateController,
-                  ),
-                ),
+                child: items.isEmpty
+                    ? Center(
+                        child: Text(
+                          selectedTab == 0
+                              ? 'No leave requests yet'
+                              : 'No action items',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (_, index) => _LeaveRequestCardMobileItem(
+                          request: items[index],
+                          state: widget.state,
+                          stateController: widget.stateController,
+                          isFromActionItems: selectedTab == 1,
+                        ),
+                      ),
               ),
             ],
           ),
@@ -182,10 +198,12 @@ class _LeaveRequestCardMobileItem extends StatelessWidget {
   final MyLeaveRequestItem request;
   final DynamicLeaveFormState state;
   final DynamicLeaveFormController stateController;
+  final bool isFromActionItems;
   const _LeaveRequestCardMobileItem({
     required this.request,
     required this.state,
     required this.stateController,
+    required this.isFromActionItems,
   });
 
   @override
@@ -195,16 +213,9 @@ class _LeaveRequestCardMobileItem extends StatelessWidget {
         .themeBox;
 
     final textTheme = Theme.of(context).textTheme;
-    // In your app:
-    EmployeeInfo empDetails = EmployeeInfo(
-      requestId: "XXXXXXXXX",
-      employeeId: "XXXXXXXXX",
-      jobTitle: "Senior Developer",
-      email: "Husamuddin@company.com",
-      department: "Software Engineer",
-      contactNumber: "XXXXXXXXXXXX",
-      leaveType: "Casual Leave",
-    );
+    final approverName = request.approvalDetails?.isNotEmpty == true
+        ? '${request.approvalDetails!.first.approverUserId ?? ''}'
+        : '—';
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -228,11 +239,13 @@ class _LeaveRequestCardMobileItem extends StatelessWidget {
                 Expanded(
                   child: _buildRow(
                     'Date:',
-                    DateTime.parse(request.updatedAt ?? '').formattedDate,
+                    _formatRequestDate(request.updatedAt),
                     textTheme,
                   ),
                 ),
-                Expanded(child: _buildRow('Approver:', 'Unknown', textTheme)),
+                Expanded(
+                  child: _buildRow('Approver:', approverName, textTheme),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -251,9 +264,15 @@ class _LeaveRequestCardMobileItem extends StatelessWidget {
                   icon: Icon(Icons.open_in_new),
                   color: const Color(0xFF23272F),
                   onPressed: () {
-                    KAppX.router.push(
-                      LeaveRequestDetailsRoute(employeeInfo: empDetails),
-                    );
+                    final requestId = request.id;
+                    if (requestId != null) {
+                      KAppX.router.push(
+                        LeaveRequestDetailsRoute(
+                          requestId: requestId,
+                          isFromActionItems: isFromActionItems,
+                        ),
+                      );
+                    }
                   },
                 ),
               ],
@@ -262,6 +281,11 @@ class _LeaveRequestCardMobileItem extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatRequestDate(String? value) {
+    if (value == null || value.isEmpty) return '';
+    return DateTime.tryParse(value)?.formattedDate ?? value;
   }
 
   Widget _buildRow(String label, String value, TextTheme theme) {
