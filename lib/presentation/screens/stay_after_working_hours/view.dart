@@ -4,20 +4,26 @@ import 'package:auto_route/auto_route.dart';
 import 'package:code_setup/modules/data/core/storage/auth_cred.dart';
 import 'package:code_setup/modules/data/core/theme/services/dimensional/dimensional.dart';
 import 'package:code_setup/modules/data/models/all_services_model.dart';
+import 'package:code_setup/modules/data/models/financial_services/financial_services_stats_model.dart';
+import 'package:code_setup/modules/data/models/financial_services/financial_services_status_breakdown_model.dart';
+import 'package:code_setup/modules/data/models/financial_services/financial_services_trend_breakdown_model.dart';
 import 'package:code_setup/modules/data/models/hr_services/stay_after_hours_request_model.dart';
+import 'package:code_setup/presentation/common_widgets/show_toast.dart';
 import 'package:code_setup/presentation/common_widgets/status_badge_mobile.dart';
 import 'package:code_setup/presentation/common_widgets/tab_button.dart';
 import 'package:code_setup/presentation/core_widgets/buttons/action_button.dart';
 import 'package:code_setup/presentation/core_widgets/input_field/search_bar.dart';
 import 'package:code_setup/presentation/core_widgets/input_field/text_field.dart';
 import 'package:code_setup/presentation/core_widgets/scaffold/scaffold.dart';
+import 'package:code_setup/presentation/screens/leave_request/view.dart';
 import 'package:code_setup/repository/data/attendance_repository_impl.dart';
 import 'package:code_setup/repository/domain/leave_repo.dart';
 import 'package:code_setup/utils/app_extensions/app_extension.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+
+part 'controller.dart';
 
 @RoutePage()
 class StayAfterWorkingHoursScreen extends ConsumerStatefulWidget {
@@ -37,180 +43,195 @@ class StayAfterWorkingHoursScreen extends ConsumerStatefulWidget {
 
 class _StayAfterWorkingHoursScreenState
     extends ConsumerState<StayAfterWorkingHoursScreen> {
-  int selectedTab = 0;
-  bool isLoading = false;
-  List<StayAfterHoursRequestItem> myRequests = [];
-  List<StayAfterHoursRequestItem> actionItems = [];
-
-  final repo = LeaveRepo();
-
-  SubServices? get selectedSubService {
-    for (final subService in widget.subServicesList) {
-      final name = subService.subServiceName?.toLowerCase() ?? '';
-      if (name.contains('stay') ||
-          name.contains('working hours') ||
-          name.contains('after hours')) {
-        return subService;
-      }
-    }
-    return null;
-  }
-
-  int get selectedServiceId =>
-      selectedSubService?.serviceId ?? widget.serviceId;
-  int get selectedSubServiceId => selectedSubService?.id ?? 0;
-  bool get hasSelectedService =>
-      selectedServiceId > 0 && selectedSubServiceId > 0;
-
-  Map<String, dynamic> get selectedListParams => {
-    'offset': 1,
-    'limit': 10,
-    'service_id': selectedServiceId,
-    'sub_service_id': selectedSubServiceId,
-  };
+  late final _VSControllerParams params;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMyRequests());
+    params = _VSControllerParams(
+      serviceId: widget.serviceId,
+      subServicesList: widget.subServicesList,
+    );
   }
 
-  Future<void> _loadMyRequests() async {
-    if (!hasSelectedService) return;
-    setState(() => isLoading = true);
-    try {
-      final requests = await repo.fetchStayAfterHoursRequests(
-        selectedListParams,
-      );
-      if (mounted) setState(() => myRequests = requests ?? []);
-    } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
-    } catch (e) {
-      log('error fetching stay after hours requests $e');
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> _loadActionItems() async {
-    if (!hasSelectedService) return;
-    setState(() => isLoading = true);
-    try {
-      final requests = await repo.fetchStayAfterHoursRequests(
-        selectedListParams,
-        isApprover: true,
-      );
-      if (mounted) setState(() => actionItems = requests ?? []);
-    } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
-    } catch (e) {
-      log('error fetching stay after hours action items $e');
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
-  }
-
-  void _onTabChanged(int index) {
-    setState(() => selectedTab = index);
-    if (index == 0) {
-      _loadMyRequests();
-    } else {
-      _loadActionItems();
-    }
-  }
-
-  void _openCreateRequestForm() {
-    if (!hasSelectedService) {
-      Fluttertoast.showToast(
-        msg: 'Stay after working hours sub-service missing',
-      );
-      return;
-    }
+  void _openCreateRequestForm(_VSController stateController) {
+    if (!stateController.hasSelectedService) return;
     KAppX.extendedRouter.dialog.showKDialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 20.toAutoScaledWidth),
       builder: (_) => _StayAfterHoursForm(
-        serviceId: selectedServiceId,
-        subServiceId: selectedSubServiceId,
-        onSubmitted: _loadMyRequests,
+        serviceId: stateController.selectedServiceId,
+        subServiceId: stateController.selectedSubServiceId,
+        onSubmitted: stateController.refreshCurrentTab,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(_vsProvider(params));
+    final stateController = ref.read(_vsProvider(params).notifier);
     final currentTheme = KAppX.globalProvider
         .read(KAppX.theme.current)
         .themeBox;
-    final items = selectedTab == 0 ? myRequests : actionItems;
+    final statsData = state.isApproverView
+        ? state.approvalStatsData
+        : state.statsData;
+    final statusBreakdownData = state.isApproverView
+        ? state.approvalStatusBreakdownData
+        : state.statusBreakdownData;
+    final trendData = state.isApproverView
+        ? state.approvalTrendData
+        : state.trendData;
+    final items = state.isApproverView ? state.actionItems : state.myRequests;
+
+    final summaryStats = [
+      StatSummaryData(
+        title: 'Total Requests',
+        description: '',
+        icon: Icons.assignment_outlined,
+        iconBgColor: const Color(0xFFF3F6F8),
+      ),
+      StatSummaryData(
+        title: 'Approved',
+        description: '',
+        icon: Icons.check_box_outlined,
+        iconBgColor: const Color(0xFFE7F1FF),
+      ),
+      StatSummaryData(
+        title: 'Pending',
+        description: '',
+        icon: Icons.timer_outlined,
+        iconBgColor: const Color(0xFFFFF9E7),
+      ),
+      StatSummaryData(
+        title: 'Rejected',
+        description: '',
+        icon: Icons.cancel_outlined,
+        iconBgColor: const Color(0xFFFFE9EA),
+      ),
+    ];
+
+    final statusData = {
+      'opened': ChartData(
+        label: 'Opened',
+        value: statusBreakdownData.completed ?? 0,
+        color: const Color(0xFF54A23B),
+      ),
+      'pending': ChartData(
+        label: 'Pending',
+        value: statusBreakdownData.pending ?? 0,
+        color: const Color(0xFFF7B226),
+      ),
+      'closed': ChartData(
+        label: 'Closed',
+        value: statusBreakdownData.rejected ?? 0,
+        color: const Color(0xFFD43E3E),
+      ),
+    };
+
+    final trendList = List<int>.filled(12, 0);
+    if (trendData.monthlyTrend?.isNotEmpty == true) {
+      for (var i = 0; i < trendData.monthlyTrend!.length && i < 12; i++) {
+        trendList[i] = trendData.monthlyTrend![i].total ?? 0;
+      }
+    }
 
     return KScaffold(
       body: Padding(
         padding: EdgeInsets.all(16.toAutoScaledWidth),
-        child: Card(
-          color: currentTheme.colors.onPrimary,
-          child: Padding(
-            padding: EdgeInsets.all(16.toAutoScaledWidth),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.nightlight_round),
-                    12.toHorizontalSizedBox,
-                    Expanded(
-                      child: Text(
-                        'Request for stay after working hours',
-                        style: TextStyle(
-                          fontSize: currentTheme.fontSizes.s16,
-                          fontWeight: currentTheme.fontWeights.wBold,
-                        ),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              StatSummaryRow(
+                stats: summaryStats,
+                counts: [
+                  '${statsData.total ?? 0}',
+                  '${statsData.completed ?? 0}',
+                  '${statsData.pending ?? 0}',
+                  '${statsData.rejected ?? 0}',
+                ],
+              ),
+              RequestStatusBreakdownCard(
+                data: statusData,
+                filterLabelSelected: state.selectedBreakdownValue,
+                onChanged: stateController.onChangeStatusDropdownValue,
+              ),
+              RequestTrendBreakdownCard(
+                monthlyData: trendList,
+                selectedYear: state.selectedTrendYear,
+                yearOptions: stateController.yearOptions,
+                onYearChanged: stateController.onChangedTrendYearValue,
+                barColor: const Color(0xFFBD8A52),
+              ),
+              Card(
+                color: currentTheme.colors.onPrimary,
+                child: Padding(
+                  padding: EdgeInsets.all(16.toAutoScaledWidth),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.nightlight_round),
+                          12.toHorizontalSizedBox,
+                          Expanded(
+                            child: Text(
+                              'Request for stay after working hours',
+                              style: TextStyle(
+                                fontSize: currentTheme.fontSizes.s16,
+                                fontWeight: currentTheme.fontWeights.wBold,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => _openCreateRequestForm(stateController),
+                            icon: const Icon(Icons.add),
+                          ),
+                        ],
                       ),
-                    ),
-                    IconButton(
-                      onPressed: _openCreateRequestForm,
-                      icon: const Icon(Icons.add),
-                    ),
-                  ],
-                ),
-                12.toVerticalSizedBox,
-                KSearchBar(
-                  autofocus: false,
-                  onChanged: (_) {},
-                  hintText: 'Search by Request Name or Request ID',
-                ),
-                12.toVerticalSizedBox,
-                Row(
-                  children: [
-                    TabButton(
-                      label: 'My Requests',
-                      selected: selectedTab == 0,
-                      icon: Icons.assignment,
-                      onTap: () => _onTabChanged(0),
-                    ),
-                    10.toHorizontalSizedBox,
-                    TabButton(
-                      label: 'Action Items',
-                      selected: selectedTab == 1,
-                      icon: Icons.task_alt_outlined,
-                      onTap: () => _onTabChanged(1),
-                    ),
-                  ],
-                ),
-                12.toVerticalSizedBox,
-                if (isLoading)
-                  const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
+                      12.toVerticalSizedBox,
+                      KSearchBar(
+                        autofocus: false,
+                        onChanged: (_) {},
+                        hintText: 'Search by Request Name or Request ID',
+                      ),
+                      12.toVerticalSizedBox,
+                      Row(
+                        children: [
+                          TabButton(
+                            label: 'My Requests',
+                            selected: !state.isApproverView,
+                            icon: Icons.assignment,
+                            onTap: () => stateController.setRequestListTab(0),
+                          ),
+                          10.toHorizontalSizedBox,
+                          TabButton(
+                            label: 'Action Items',
+                            selected: state.isApproverView,
+                            icon: Icons.task_alt_outlined,
+                            onTap: () => stateController.setRequestListTab(1),
+                          ),
+                        ],
+                      ),
+                      12.toVerticalSizedBox,
+                      if (state.isLoading)
+                        const SizedBox(
+                          height: 260,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => 12.toVerticalSizedBox,
+                          itemBuilder: (_, index) =>
+                              _StayAfterHoursCard(request: items[index]),
+                        ),
+                    ],
                   )
-                else
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: items.length,
-                      separatorBuilder: (_, __) => 12.toVerticalSizedBox,
-                      itemBuilder: (_, index) =>
-                          _StayAfterHoursCard(request: items[index]),
-                    ),
-                  ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -352,7 +373,7 @@ class _StayAfterHoursFormState extends ConsumerState<_StayAfterHoursForm> {
       KAppX.router.pop();
       await widget.onSubmitted();
     } on ApiException catch (apiError) {
-      Fluttertoast.showToast(msg: apiError.message, timeInSecForIosWeb: 3);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error creating stay after hours request $e');
     } finally {
