@@ -8,6 +8,7 @@ class RouteNames {
   static const String allServices = '/allServices';
   static const String updateAttendanceRecord = '/updateAttendanceRecord';
   static const String leaveRequestScreen = '/leaveRequestScreen';
+  static const String leaveRequestCreateScreen = '/leaveRequestCreateScreen';
   static const String leaveRequestDetailsScreen = '/leaveRequestDetailsScreen';
   static const String holidaysScreen = '/holidaysScreen';
   static const String appointmentScreen = '/appointmentScreen';

@@ -4,6 +4,7 @@ import 'package:code_setup/modules/data/core/storage/auth_cred.dart';
 import 'package:code_setup/modules/data/core/theme/services/dimensional/dimensional.dart';
 import 'package:code_setup/modules/data/models/attendance_management/my_attendance_request_model.dart';
 import 'package:code_setup/modules/router/app_router.gr.dart';
+import 'package:code_setup/presentation/common_widgets/radio_group.dart';
 import 'package:code_setup/presentation/common_widgets/status_badge_mobile.dart';
 import 'package:code_setup/presentation/common_widgets/tab_button.dart';
 import 'package:code_setup/presentation/core_widgets/buttons/action_button.dart';
@@ -69,7 +70,10 @@ class UpdateAttendanceRecordScreen extends ConsumerWidget {
           child: Column(
             children: [
               10.toVerticalSizedBox,
-              ScrollableMonthBar(initialDate: DateTime.now()),
+              ScrollableMonthBar(
+                initialDate: DateTime.now(),
+                onMonthChanged: stateController.onCalendarMonthChanged,
+              ),
               10.toVerticalSizedBox,
               LegendsPanel(),
               20.toVerticalSizedBox,

@@ -44,6 +44,11 @@ class _ViewState {
   final String toDate;
   final String fromTime;
   final String toTime;
+  final String selectedReason;
+  final int selectedCalendarMonth;
+  final int selectedCalendarYear;
+  final List<WorkScheduleItem> workSchedules;
+  final List<HolidayRangeItem> holidays;
   final String searchQuery;
   final int requestListTabIndex;
 
@@ -56,6 +61,11 @@ class _ViewState {
     required this.toDate,
     required this.fromTime,
     required this.toTime,
+    required this.selectedReason,
+    required this.selectedCalendarMonth,
+    required this.selectedCalendarYear,
+    required this.workSchedules,
+    required this.holidays,
     required this.searchQuery,
     required this.requestListTabIndex,
   });
@@ -70,6 +80,11 @@ class _ViewState {
         toDate: '',
         fromTime: '',
         toTime: '',
+        selectedReason: '',
+        selectedCalendarMonth: DateTime.now().month,
+        selectedCalendarYear: DateTime.now().year,
+        workSchedules: const [],
+        holidays: const [],
         searchQuery: '',
         requestListTabIndex: 0,
       );
@@ -89,6 +104,11 @@ class _ViewState {
     String? toDate,
     String? fromTime,
     String? toTime,
+    String? selectedReason,
+    int? selectedCalendarMonth,
+    int? selectedCalendarYear,
+    List<WorkScheduleItem>? workSchedules,
+    List<HolidayRangeItem>? holidays,
     String? searchQuery,
     int? requestListTabIndex,
   }) {
@@ -101,6 +121,11 @@ class _ViewState {
       toDate: toDate ?? this.toDate,
       fromTime: fromTime ?? this.fromTime,
       toTime: toTime ?? this.toTime,
+      selectedReason: selectedReason ?? this.selectedReason,
+      selectedCalendarMonth: selectedCalendarMonth ?? this.selectedCalendarMonth,
+      selectedCalendarYear: selectedCalendarYear ?? this.selectedCalendarYear,
+      workSchedules: workSchedules ?? this.workSchedules,
+      holidays: holidays ?? this.holidays,
       searchQuery: searchQuery ?? this.searchQuery,
       requestListTabIndex: requestListTabIndex ?? this.requestListTabIndex,
     );
@@ -114,7 +139,7 @@ class _VSController extends StateNotifier<_ViewState> {
   late TextEditingController toDateController;
   late TextEditingController fromTimeController;
   late TextEditingController toTimeController;
-  late TextEditingController reasonController;
+  late TextEditingController commentsController;
 
   final formKey = GlobalKey<FormState>();
   final _attendanceRepo = AttendanceRepository();
@@ -124,8 +149,11 @@ class _VSController extends StateNotifier<_ViewState> {
     toDateController = TextEditingController();
     fromTimeController = TextEditingController();
     toTimeController = TextEditingController();
-    reasonController = TextEditingController();
-    fetchAttendanceRecord();
+    commentsController = TextEditingController();
+    fetchCalendarData(
+      month: state.selectedCalendarMonth,
+      year: state.selectedCalendarYear,
+    );
     _refreshMyRequestsDashboardData();
   }
 
@@ -181,21 +209,43 @@ class _VSController extends StateNotifier<_ViewState> {
     state = state.copyWith(searchQuery: value);
   }
 
-  Future<void> fetchAttendanceRecord() async {
+  Future<void> fetchCalendarData({required int month, required int year}) async {
     try {
-      final atttendanceData = await _attendanceRepo.fetchAttendanceRecord();
-      if (atttendanceData != null) {
-        state = state.copyWith(attendanceData: atttendanceData);
-      }
+      final results = await Future.wait([
+        _attendanceRepo.fetchAttendanceRecord(month: month, year: year),
+        _attendanceRepo.fetchWorkSchedules(month: month, year: year),
+        _attendanceRepo.fetchHolidays(year: year),
+      ]);
+      final attendanceData = results[0] as AttendanceData?;
+      final workSchedules = results[1] as List<WorkScheduleItem>?;
+      final holidays = results[2] as List<HolidayRangeItem>?;
+      state = state.copyWith(
+        selectedCalendarMonth: month,
+        selectedCalendarYear: year,
+        attendanceData: attendanceData ?? state.attendanceData,
+        workSchedules: workSchedules ?? const [],
+        holidays: holidays ?? const [],
+      );
     } on ApiException catch (apiError) {
       Fluttertoast.showToast(msg: apiError.message);
     } catch (e) {}
+  }
+
+  Future<void> onCalendarMonthChanged(DateTime monthDate) async {
+    await fetchCalendarData(month: monthDate.month, year: monthDate.year);
   }
 
   Future<void> onPressUpdateCreateAttendanceRequest() async {
     final user = KAppX.globalProvider.read(userProvider);
     final isValid = formKey.currentState?.validate();
     if (isValid != true) return;
+    if (state.selectedReason.trim().isEmpty) {
+      Fluttertoast.showToast(
+        msg: 'Please select a reason',
+        timeInSecForIosWeb: 3,
+      );
+      return;
+    }
 
     final existingServiceId = state.myAttendanceRequests.firstOrNull?.serviceId;
     final existingSubServiceId =
@@ -211,8 +261,8 @@ class _VSController extends StateNotifier<_ViewState> {
       'to_date': state.toDate,
       'from_time': state.fromTime,
       'to_time': state.toTime,
-      'reason': reasonController.text.trim(),
-      'comments': reasonController.text.trim(),
+      'reason': state.selectedReason.trim(),
+      'comments': commentsController.text.trim(),
     };
 
     try {
@@ -245,11 +295,21 @@ class _VSController extends StateNotifier<_ViewState> {
     toDateController.clear();
     fromTimeController.clear();
     toTimeController.clear();
-    reasonController.clear();
-    state = state.copyWith(fromDate: '', toDate: '', fromTime: '', toTime: '');
+    commentsController.clear();
+    state = state.copyWith(
+      fromDate: '',
+      toDate: '',
+      fromTime: '',
+      toTime: '',
+      selectedReason: '',
+    );
     if (!clearOnly) {
       KAppX.router.pop();
     }
+  }
+
+  void onSelectReason(String value) {
+    state = state.copyWith(selectedReason: value);
   }
 
   Future<void> onPressFromDate(bool isFromDate) async {
@@ -298,7 +358,7 @@ class _VSController extends StateNotifier<_ViewState> {
     toDateController.dispose();
     fromTimeController.dispose();
     toTimeController.dispose();
-    reasonController.dispose();
+    commentsController.dispose();
     super.dispose();
   }
 }

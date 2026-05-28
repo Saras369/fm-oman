@@ -1,8 +1,6 @@
 import 'package:code_setup/l10n/app_localizations.dart';
 import 'package:code_setup/utils/app_extensions/app_extension.dart';
 import 'package:flutter/material.dart';
-import 'package:jiffy/jiffy.dart';
-import 'package:table_calendar/table_calendar.dart';
 
 class AttendanceLegend {
   final String label;
@@ -26,14 +24,7 @@ const List<AttendanceLegend> legends = [
     Color(0xFFFEEAEA),
     Color(0xFFD37569),
   ),
-  AttendanceLegend('Off', Icons.circle, Color(0xFFF7F7F7), Color(0xFF262727)),
   AttendanceLegend('Leave', Icons.block, Color(0xFFF8F9FC), Color(0xFF2E3B4E)),
-  AttendanceLegend(
-    'On Duty',
-    Icons.change_history,
-    Color(0xFFFFF9EA),
-    Color(0xFFE8B924),
-  ),
   AttendanceLegend(
     'Holiday',
     Icons.home_outlined,
@@ -41,22 +32,10 @@ const List<AttendanceLegend> legends = [
     Color(0xFF7CC285),
   ),
   AttendanceLegend(
-    'Alert for Deduction',
-    Icons.warning_amber_outlined,
-    Color(0xFFFFF9F2),
-    Color(0xFFE6B166),
-  ),
-  AttendanceLegend(
-    'Status Unknown',
-    Icons.help_outline,
-    Color(0xFFFFEDEA),
-    Color(0xFFD16B5B),
-  ),
-  AttendanceLegend(
-    'Overtime',
-    Icons.access_time,
-    Color(0xFFF7F6FF),
-    Color(0xFF7A6FED),
+    'Work schedule',
+    Icons.not_interested_sharp,
+    Color(0xFFFFF9EA),
+    Color(0xFFE8B924),
   ),
   AttendanceLegend(
     'Regularized',
@@ -65,31 +44,6 @@ const List<AttendanceLegend> legends = [
     Color(0xFF6E89CF),
   ),
 ];
-
-// Map highlighted date to legend index/instance
-final Map<DateTime, int> specialDays = {
-  DateTime(2025, 9, 28): 9, // Regularized icon
-  DateTime(2025, 9, 5): 1, // Absent icon
-  // Add more dates as needed
-};
-
-String _monthName(int n) {
-  const names = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return (n >= 1 && n <= 12) ? names[n - 1] : '';
-}
 
 // Legend Tile
 class LegendTile extends StatelessWidget {
@@ -198,17 +152,3 @@ class LegendMarker {
   final Color iconColor;
   LegendMarker(this.icon, this.bgColor, this.iconColor);
 }
-
-// Example legend days map for special markers/colors
-final Map<DateTime, LegendMarker> legendDays = {
-  DateTime(2025, 9, 26): LegendMarker(
-    Icons.change_history_outlined,
-    Color(0xFFF7FAFF),
-    Color(0xFF6E89CF),
-  ),
-  DateTime(2025, 9, 28): LegendMarker(
-    Icons.change_history_sharp,
-    Color(0xFFFEEAEA),
-    Color(0xFFD37569),
-  ),
-};

@@ -102,80 +102,97 @@ class AttendanceRequestItem {
   });
 
   factory AttendanceRequestItem.fromJson(Map<String, dynamic> json) =>
-      AttendanceRequestItem(
-        createdBy: json['created_by'] as String?,
-        updatedBy: json['updated_by'] as String?,
-        id: json['id'] is int
-            ? json['id'] as int
-            : (json['id'] != null ? int.tryParse('${json['id']}') : null),
-        createdAt: json['created_at'] != null
-            ? DateTime.tryParse(json['created_at'] as String)
-            : null,
-        updatedAt: json['updated_at'] != null
-            ? DateTime.tryParse(json['updated_at'] as String)
-            : null,
-        reqUserDepartmentId: json['req_user_department_id'] is int
-            ? json['req_user_department_id'] as int
-            : (json['req_user_department_id'] != null
-                  ? int.tryParse('${json['req_user_department_id']}')
-                  : null),
-        reqUserSectionId: json['req_user_section_id'] is int
-            ? json['req_user_section_id'] as int
-            : (json['req_user_section_id'] != null
-                  ? int.tryParse('${json['req_user_section_id']}')
-                  : null),
-        serviceId: json['service_id'] is int
-            ? json['service_id'] as int
-            : (json['service_id'] != null
-                  ? int.tryParse('${json['service_id']}')
-                  : null),
-        subServiceId: json['sub_service_id'] is int
-            ? json['sub_service_id'] as int
-            : (json['sub_service_id'] != null
-                  ? int.tryParse('${json['sub_service_id']}')
-                  : null),
-        userId: json['user_id'] is int
-            ? json['user_id'] as int
-            : (json['user_id'] != null
-                  ? int.tryParse('${json['user_id']}')
-                  : null),
-        fromDate: json['from_date'] as String?,
-        toDate: json['to_date'] as String?,
-        fromTime: json['from_time'] as String?,
-        toTime: json['to_time'] as String?,
-        reason: json['reason'] as String?,
-        comments: json['comments'] as String?,
-        status: json['status'] as String?,
-        workflowExecutionId: json['workflow_execution_id'] as String?,
-        createdByUser: json['created_by_user'] == null
+      () {
+        final requestRaw = json['request'];
+        final requestJson = requestRaw is Map<String, dynamic>
+            ? requestRaw
+            : requestRaw is Map
+            ? Map<String, dynamic>.from(requestRaw)
+            : json;
+        return AttendanceRequestItem(
+          createdBy: requestJson['created_by'] as String?,
+          updatedBy: requestJson['updated_by'] as String?,
+          id: requestJson['id'] is int
+              ? requestJson['id'] as int
+              : (requestJson['id'] != null
+                    ? int.tryParse('${requestJson['id']}')
+                    : null),
+          createdAt: requestJson['created_at'] != null
+              ? DateTime.tryParse(requestJson['created_at'] as String)
+              : null,
+          updatedAt: requestJson['updated_at'] != null
+              ? DateTime.tryParse(requestJson['updated_at'] as String)
+              : null,
+          reqUserDepartmentId: requestJson['req_user_department_id'] is int
+              ? requestJson['req_user_department_id'] as int
+              : (requestJson['req_user_department_id'] != null
+                    ? int.tryParse('${requestJson['req_user_department_id']}')
+                    : null),
+          reqUserSectionId: requestJson['req_user_section_id'] is int
+              ? requestJson['req_user_section_id'] as int
+              : (requestJson['req_user_section_id'] != null
+                    ? int.tryParse('${requestJson['req_user_section_id']}')
+                    : null),
+          serviceId: requestJson['service_id'] is int
+              ? requestJson['service_id'] as int
+              : (requestJson['service_id'] != null
+                    ? int.tryParse('${requestJson['service_id']}')
+                    : null),
+          subServiceId: requestJson['sub_service_id'] is int
+              ? requestJson['sub_service_id'] as int
+              : (requestJson['sub_service_id'] != null
+                    ? int.tryParse('${requestJson['sub_service_id']}')
+                    : null),
+          userId: requestJson['user_id'] is int
+              ? requestJson['user_id'] as int
+              : (requestJson['user_id'] != null
+                    ? int.tryParse('${requestJson['user_id']}')
+                    : null),
+          fromDate: requestJson['from_date'] as String?,
+          toDate: requestJson['to_date'] as String?,
+          fromTime: requestJson['from_time'] as String?,
+          toTime: requestJson['to_time'] as String?,
+          reason: requestJson['reason'] as String?,
+          comments: requestJson['comments'] as String?,
+          status: requestJson['status'] as String?,
+          workflowExecutionId: requestJson['workflow_execution_id'] as String?,
+          createdByUser: requestJson['created_by_user'] == null
             ? null
             : CreatedByUser.fromJson(
-                json['created_by_user'] as Map<String, dynamic>,
+                requestJson['created_by_user'] as Map<String, dynamic>,
               ),
-        reqDepartment: json['req_department'] == null
+          reqDepartment: requestJson['req_department'] == null
             ? null
             : ReqDepartment.fromJson(
-                json['req_department'] as Map<String, dynamic>,
+                requestJson['req_department'] as Map<String, dynamic>,
               ),
-        reqSection: json['req_section'] == null
+          reqSection: requestJson['req_section'] == null
             ? null
-            : ReqSection.fromJson(json['req_section'] as Map<String, dynamic>),
-        service: json['service'] == null
+            : ReqSection.fromJson(
+                requestJson['req_section'] as Map<String, dynamic>,
+              ),
+          service: requestJson['service'] == null
             ? null
-            : Service.fromJson(json['service'] as Map<String, dynamic>),
-        subService: json['sub_service'] == null
+            : Service.fromJson(requestJson['service'] as Map<String, dynamic>),
+          subService: requestJson['sub_service'] == null
             ? null
-            : SubServices.fromJson(json['sub_service'] as Map<String, dynamic>),
-        chatMessages: (json['chat_messages'] as List<dynamic>?)
+            : SubServices.fromJson(
+                requestJson['sub_service'] as Map<String, dynamic>,
+              ),
+          chatMessages: ((json['chat_messages'] ?? requestJson['chat_messages'])
+                  as List<dynamic>?)
             ?.map((e) => ChatMessage.fromJson(e as Map<String, dynamic>))
             .toList(),
-        workflowLogs: (json['workflow_logs'] as List<dynamic>?)
+          workflowLogs:
+              ((json['workflow_logs'] ?? json['workflow_details'])
+                      as List<dynamic>?)
             ?.map((e) => WorkflowLog.fromJson(e as Map<String, dynamic>))
             .toList(),
-        approvalDetails: (json['approval_details'] as List<dynamic>?)
+          approvalDetails: (json['approval_details'] as List<dynamic>?)
             ?.map((e) => ApprovalDetail.fromJson(e as Map<String, dynamic>))
             .toList(),
-      );
+        );
+      }();
 
   Map<String, dynamic> toJson() => {
     'created_by': createdBy,

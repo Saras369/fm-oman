@@ -2,8 +2,13 @@ part of '../view.dart';
 
 class ScrollableMonthBar extends ConsumerStatefulWidget {
   final DateTime initialDate;
+  final Future<void> Function(DateTime monthDate)? onMonthChanged;
 
-  const ScrollableMonthBar({super.key, required this.initialDate});
+  const ScrollableMonthBar({
+    super.key,
+    required this.initialDate,
+    this.onMonthChanged,
+  });
 
   @override
   ConsumerState<ScrollableMonthBar> createState() => _ScrollableMonthBarState();
@@ -55,6 +60,7 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
           currentMonth.year == today.year && currentMonth.month == today.month;
       _initScrollController();
     });
+    widget.onMonthChanged?.call(currentMonth);
   }
 
   void goToNextMonth() {
@@ -66,6 +72,7 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
           currentMonth.year == today.year && currentMonth.month == today.month;
       _initScrollController();
     });
+    widget.onMonthChanged?.call(currentMonth);
   }
 
   // Add data list holder
@@ -73,9 +80,22 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
 
   // Add this helper to find the legend by label
   AttendanceLegend _getLegendForStatus(String? status) {
+    final normalized = (status ?? '').trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return legends.firstWhere((l) => l.label == 'Absent');
+    }
+
+    if (normalized == 'regularised') {
+      return legends.firstWhere((l) => l.label == 'Regularized');
+    }
+
+    if (normalized == 'work_schedule' || normalized == 'work schedule') {
+      return legends.firstWhere((l) => l.label == 'Work schedule');
+    }
+
     return legends.firstWhere(
-      (legend) => legend.label.toLowerCase() == (status ?? '').toLowerCase(),
-      orElse: () => legends.firstWhere((l) => l.label == 'Status Unknown'),
+      (legend) => legend.label.toLowerCase() == normalized,
+      orElse: () => legends.firstWhere((l) => l.label == 'Absent'),
     );
   }
 
@@ -102,6 +122,16 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
         .themeBox;
     final state = ref.watch(_vsProvider);
     attendanceRecords = state.attendanceData.attendanceRecords ?? [];
+    final workSchedules = state.workSchedules;
+    final holidays = state.holidays;
+    final recordsByDate = <String, AttendanceRecord>{};
+    for (final record in attendanceRecords ?? <AttendanceRecord>[]) {
+      final date = record.attendanceDate;
+      if (date != null && date.isNotEmpty) {
+        recordsByDate[date] = record;
+      }
+    }
+
     return Container(
       padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
       decoration: BoxDecoration(
@@ -153,35 +183,39 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
               itemCount: monthDays.length,
               itemBuilder: (context, index) {
                 DateTime day = monthDays[index];
-                // Find attendance record for this day
-                AttendanceRecord? record;
-                if (attendanceRecords != null) {
-                  record =
-                      attendanceRecords!
-                          .where(
-                            (r) =>
-                                r.attendanceDate ==
-                                '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
-                          )
-                          .toList()
-                          .isNotEmpty
-                      ? attendanceRecords!.firstWhere(
-                          (r) =>
-                              r.attendanceDate ==
-                              '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}',
-                        )
-                      : null;
-                }
+                final dayKey =
+                    '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+                final record = recordsByDate[dayKey];
+                final isHoliday = holidays.any(
+                  (h) => _isDateWithinRange(day, h.fromDate, h.toDate),
+                );
+                final isWorkSchedule = workSchedules.any(
+                  (w) => _isDateWithinRange(day, w.fromDate, w.toDate),
+                );
 
                 final isSelected =
                     selectedDate.year == day.year &&
                     selectedDate.month == day.month &&
                     selectedDate.day == day.day;
 
-                AttendanceLegend? legend;
-                if (record != null) {
-                  legend = _getLegendForStatus(record.attendanceStatus);
-                }
+                final today = DateTime.now();
+                final normalizedToday = DateTime(
+                  today.year,
+                  today.month,
+                  today.day,
+                );
+                final normalizedDay = DateTime(day.year, day.month, day.day);
+                final isFutureDay = normalizedDay.isAfter(normalizedToday);
+
+                final AttendanceLegend? legend = record != null
+                    ? _getLegendForStatus(record.attendanceStatus)
+                    : isHoliday
+                    ? _getLegendForStatus('Holiday')
+                    : isWorkSchedule
+                    ? _getLegendForStatus('Work schedule')
+                    : isFutureDay
+                    ? null
+                    : _getLegendForStatus('Absent');
 
                 return GestureDetector(
                   onTap: () {
@@ -216,47 +250,37 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
                           ),
                         ),
                         const SizedBox(height: 5),
-                        legend == null
-                            ? Text(
+                        Container(
+                          decoration: BoxDecoration(
+                            color: legend?.bgColor ?? Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
                                 '${day.day}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : const Color(0xff1c2447),
-                                  fontSize: currentTheme.fontSizes.s18,
-                                ),
-                              )
-                            : Container(
-                                decoration: BoxDecoration(
-                                  color: legend?.bgColor,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      '${day.day}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: legend?.iconColor,
-                                        fontSize: currentTheme.fontSizes.s16,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 3),
-
-                                    Icon(
-                                      legend?.icon,
-                                      color: legend?.iconColor,
-                                      size: 13.toAutoScaledWidth,
-                                    ),
-                                  ],
+                                  color: legend?.iconColor ?? const Color(0xff4d5c78),
+                                  fontSize: currentTheme.fontSizes.s16,
                                 ),
                               ),
+                              if (legend != null) ...[
+                                const SizedBox(width: 3),
+                                Icon(
+                                  legend.icon,
+                                  color: legend.iconColor,
+                                  size: 13.toAutoScaledWidth,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -267,5 +291,16 @@ class _ScrollableMonthBarState extends ConsumerState<ScrollableMonthBar> {
         ],
       ),
     );
+  }
+
+  bool _isDateWithinRange(DateTime day, String? from, String? to) {
+    if (from == null || from.isEmpty) return false;
+    final fromDate = DateTime.tryParse(from);
+    final toDate = DateTime.tryParse(to ?? from);
+    if (fromDate == null || toDate == null) return false;
+    final normalizedDay = DateTime(day.year, day.month, day.day);
+    final start = DateTime(fromDate.year, fromDate.month, fromDate.day);
+    final end = DateTime(toDate.year, toDate.month, toDate.day);
+    return !normalizedDay.isBefore(start) && !normalizedDay.isAfter(end);
   }
 }

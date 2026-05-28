@@ -52,7 +52,9 @@ class _VSController extends StateNotifier<_ViewState> {
     final holidayRepo = HolidaysRepo();
 
     try {
-      final holidayData = await holidayRepo.fetchHolidayList();
+      final holidayData = await holidayRepo.fetchHolidayList(
+        year: DateTime.now().year,
+      );
 
       if (holidayData != null) {
         state = state.copyWith(holidayModel: holidayData);

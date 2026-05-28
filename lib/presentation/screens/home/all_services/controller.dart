@@ -224,7 +224,7 @@ class _VSController extends StateNotifier<_ViewState> {
           subServicesList: subServices,
         ),
       );
-    } else if (serviceId == 4) {
+    } else if (serviceId == 49) {
       KAppX.router.push(
         HelpDeskMenuRoute(serviceId: serviceId, subServicesList: []),
       );

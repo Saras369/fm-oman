@@ -22,6 +22,9 @@ class LeaveFormWidget extends ConsumerWidget {
     final currentTheme = KAppX.globalProvider
         .read(KAppX.theme.current)
         .themeBox;
+    final isCancellation = stateController.isCancellationLeaveType(
+      state.selectedLeaveType,
+    );
 
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -44,14 +47,13 @@ class LeaveFormWidget extends ConsumerWidget {
 
                 items:
                     state.leaveTypeList
-                        ?.map<KDropdownItem<LeaveTypeItem>>(
+                        .map<KDropdownItem<LeaveTypeItem>>(
                           (opt) => KDropdownItem<LeaveTypeItem>(
                             value: opt,
                             child: Text(opt.name ?? ''),
                           ),
                         )
-                        .toList() ??
-                    [],
+                        .toList(),
 
                 // errorText: state.selectedBankName.id != null
                 //     ? null
@@ -62,7 +64,30 @@ class LeaveFormWidget extends ConsumerWidget {
                   }
                 },
               ),
-              if (state.selectedLeaveType.id == 11)
+              if (isCancellation)
+                KDropdownField<MyLeaveRequestItem>(
+                  value: state.selectedApprovedLeave.id != null
+                      ? state.selectedApprovedLeave
+                      : null,
+                  fieldHeadingText: 'Approved Leave Type *',
+                  hintText: 'Select Approved Leave Type',
+                  items: stateController.approvedLeavesForCancellation
+                      .map<KDropdownItem<MyLeaveRequestItem>>(
+                        (opt) => KDropdownItem<MyLeaveRequestItem>(
+                          value: opt,
+                          child: Text(
+                            stateController.approvedLeaveDropdownLabel(opt),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      stateController.onSelectApprovedLeave(v);
+                    }
+                  },
+                ),
+              if (state.selectedLeaveType.id == 11 && !isCancellation)
                 KDropdownField<UnpaidLeaveCategoryItem>(
                   value: null,
                   fieldHeadingText: 'Unpaid Leave Type *',
@@ -70,14 +95,13 @@ class LeaveFormWidget extends ConsumerWidget {
 
                   items:
                       state.unpaidLeaveCategories
-                          ?.map<KDropdownItem<UnpaidLeaveCategoryItem>>(
+                          .map<KDropdownItem<UnpaidLeaveCategoryItem>>(
                             (opt) => KDropdownItem<UnpaidLeaveCategoryItem>(
                               value: opt,
                               child: Text(opt.unpaidLeaveCategory ?? ''),
                             ),
                           )
-                          .toList() ??
-                      [],
+                          .toList(),
 
                   // errorText: state.selectedBankName.id != null
                   //     ? null
@@ -88,7 +112,7 @@ class LeaveFormWidget extends ConsumerWidget {
                     }
                   },
                 ),
-              if (state.selectedLeaveType.id == 12)
+              if (state.selectedLeaveType.id == 12 && !isCancellation)
                 KDropdownField<MourningLeaveRelationItem>(
                   value: null,
                   fieldHeadingText: 'RelationShip *',
@@ -96,14 +120,13 @@ class LeaveFormWidget extends ConsumerWidget {
 
                   items:
                       state.mourningLeaveRelations
-                          ?.map<KDropdownItem<MourningLeaveRelationItem>>(
+                          .map<KDropdownItem<MourningLeaveRelationItem>>(
                             (opt) => KDropdownItem<MourningLeaveRelationItem>(
                               value: opt,
                               child: Text(opt.mourningLeaveRelation ?? ''),
                             ),
                           )
-                          .toList() ??
-                      [],
+                          .toList(),
 
                   // errorText: state.selectedBankName.id != null
                   //     ? null
@@ -114,8 +137,9 @@ class LeaveFormWidget extends ConsumerWidget {
                     }
                   },
                 ),
-              if (state.selectedLeaveType.id == 2 ||
-                  state.selectedLeaveType.id == 7)
+              if (!isCancellation &&
+                  (state.selectedLeaveType.id == 2 ||
+                      state.selectedLeaveType.id == 7))
                 KRadioGroup<String>(
                   title: 'Leave For',
                   isRequired: true,
@@ -135,14 +159,13 @@ class LeaveFormWidget extends ConsumerWidget {
 
                   items:
                       state.behalfOfUsers
-                          ?.map<KDropdownItem<BehalfOfUserItem>>(
+                          .map<KDropdownItem<BehalfOfUserItem>>(
                             (opt) => KDropdownItem<BehalfOfUserItem>(
                               value: opt,
                               child: Text(opt.employeeName ?? ''),
                             ),
                           )
-                          .toList() ??
-                      [],
+                          .toList(),
 
                   // errorText: state.selectedBankName.id != null
                   //     ? null
@@ -161,7 +184,9 @@ class LeaveFormWidget extends ConsumerWidget {
                   fieldHeadingText: 'Start Date *',
                   hintText: 'DD/MM/YYYY',
                   readOnly: true,
-                  onTap: stateController.onPressSelectStartDate,
+                  onTap: isCancellation
+                      ? null
+                      : stateController.onPressSelectStartDate,
                   validator: (value) => (value == null || value.isEmpty
                       ? 'Please select date'
                       : null),
@@ -174,14 +199,70 @@ class LeaveFormWidget extends ConsumerWidget {
                   fieldHeadingText: 'End Date *',
                   hintText: 'DD/MM/YYYY',
                   readOnly: true,
-                  onTap: stateController.onPressSelectEndDate,
+                  onTap: isCancellation
+                      ? null
+                      : stateController.onPressSelectEndDate,
                   validator: (value) => (value == null || value.isEmpty
                       ? 'Please select date'
                       : null),
                 ),
               ),
+              if (isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Select Duration *',
+                    hintText: '0',
+                    controller: stateController.selectDurationController,
+                    readOnly: true,
+                    validator: (value) => (value == null || value.isEmpty
+                        ? 'Please select an approved leave'
+                        : null),
+                  ),
+                ),
+              if (isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Employee Name *',
+                    controller: stateController.employeeNameController,
+                    readOnly: true,
+                  ),
+                ),
+              if (isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'department *',
+                    controller: stateController.departmentController,
+                    readOnly: true,
+                  ),
+                ),
+              if (isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Reason for Cancellation *',
+                    hintText: 'Enter reason for cancellation',
+                    controller: stateController.reasonForCancellationController,
+                    maxLines: 4,
+                    validator: (value) => (value == null || value.trim().isEmpty
+                        ? 'Please enter reason for cancellation'
+                        : null),
+                  ),
+                ),
+              if (!isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Leave Balances *',
+                    initialValue: '${state.availableLeaveBalance} Days',
+                    readOnly: true,
+                    hintText: '0 Days',
+                  ),
+                ),
 
-              if (state.selectedLeaveType.id == 9)
+              if (!isCancellation && state.selectedLeaveType.id == 9)
                 KRadioGroup<String>(
                   title: 'Representation',
                   isRequired: true,
@@ -193,7 +274,7 @@ class LeaveFormWidget extends ConsumerWidget {
                   onChanged: (val) => stateController.onSelectLeaveFor(val),
                 ),
 
-              if (state.selectedLeaveType.id == 9)
+              if (!isCancellation && state.selectedLeaveType.id == 9)
                 Padding(
                   padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
                   child: KTextField(
@@ -208,7 +289,7 @@ class LeaveFormWidget extends ConsumerWidget {
                 ),
 
               // add country dropdown
-              if (state.selectedLeaveType.id == 9)
+              if (!isCancellation && state.selectedLeaveType.id == 9)
                 Padding(
                   padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
                   child: KTextField(
@@ -222,19 +303,20 @@ class LeaveFormWidget extends ConsumerWidget {
                   ),
                 ),
 
-              Padding(
-                padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
-                child: KTextField(
-                  fieldHeadingText: 'Contact Number During Leave *',
-                  hintText: 'Enter here...',
-                  controller:
-                      stateController.contactNumberDuringLeaveController,
-                  validator: (value) => (value == null || value.isEmpty
-                      ? 'Please enter contact number during leave'
-                      : null),
+              if (!isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Contact Number During Leave *',
+                    hintText: 'Enter here...',
+                    controller:
+                        stateController.contactNumberDuringLeaveController,
+                    validator: (value) => (value == null || value.isEmpty
+                        ? 'Please enter contact number during leave'
+                        : null),
+                  ),
                 ),
-              ),
-              if (state.selectedLeaveType.id == 3)
+              if (!isCancellation && state.selectedLeaveType.id == 3)
                 Padding(
                   padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
                   child: KTextField(
@@ -247,38 +329,56 @@ class LeaveFormWidget extends ConsumerWidget {
                   ),
                 ),
 
-              Padding(
-                padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
-                child: KTextField(
-                  fieldHeadingText: 'Address During Leave *',
-                  hintText: 'Enter here...',
-                  controller: stateController.addressDuringLeaveController,
-                  validator: (value) => (value == null || value.isEmpty
-                      ? 'Please enter address during leave'
-                      : null),
+              if (!isCancellation)
+                Padding(
+                  padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
+                  child: KTextField(
+                    fieldHeadingText: 'Address During Leave *',
+                    hintText: 'Enter here...',
+                    controller: stateController.addressDuringLeaveController,
+                    validator: (value) => (value == null || value.isEmpty
+                        ? 'Please enter address during leave'
+                        : null),
+                  ),
                 ),
-              ),
+
+              if (isCancellation)
+                FileUploadWidget(
+                  onUploadSuccess: (url) {
+                    stateController.onUploadFileSuccess(url);
+                  },
+                  onDelete: (index) {
+                    stateController.onRemoveFile(index);
+                  },
+                ),
 
               Padding(
                 padding: EdgeInsets.only(bottom: 15.toAutoScaledHeight),
                 child: KTextField(
-                  fieldHeadingText: 'Comments',
-                  hintText: 'Enter here...',
+                  fieldHeadingText: isCancellation
+                      ? 'Comments(Optional)'
+                      : 'Comments',
+                  hintText: isCancellation
+                      ? 'Enter Comments...'
+                      : 'Enter here...',
                   controller: stateController.notesController,
-                  validator: (value) => (value == null || value.isEmpty
-                      ? 'Please enter note'
-                      : null),
+                  validator: isCancellation
+                      ? null
+                      : (value) => (value == null || value.isEmpty
+                          ? 'Please enter note'
+                          : null),
                 ),
               ),
 
-              FileUploadWidget(
-                onUploadSuccess: (url) {
-                  stateController.onUploadFileSuccess(url);
-                },
-                onDelete: (index) {
-                  stateController.onRemoveFile(index);
-                },
-              ),
+              if (!isCancellation)
+                FileUploadWidget(
+                  onUploadSuccess: (url) {
+                    stateController.onUploadFileSuccess(url);
+                  },
+                  onDelete: (index) {
+                    stateController.onRemoveFile(index);
+                  },
+                ),
 
               20.toVerticalSizedBox,
 

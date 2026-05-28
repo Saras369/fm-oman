@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:code_setup/modules/data/models/attendance_management/my_attendance_request_model.dart';
+import 'package:code_setup/modules/data/core/storage/auth_cred.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_stats_model.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_status_breakdown_model.dart';
 import 'package:code_setup/modules/data/models/financial_services/financial_services_trend_breakdown_model.dart';
@@ -13,11 +14,21 @@ import 'package:dio/dio.dart';
 
 class AttendanceRepositoryImpl implements AttendanceRepository {
   @override
-  Future<AttendanceData?> fetchAttendanceRecord() async {
+  Future<AttendanceData?> fetchAttendanceRecord({
+    required int month,
+    required int year,
+  }) async {
+    final user = KAppX.globalProvider.read(userProvider);
+    final userId = user?.userId;
+    if (userId == null) {
+      throw ApiException('Unable to fetch attendance: user not found');
+    }
     try {
       final client = await KAppX.network.secureClient();
       if (client != null) {
-        final response = await client.get(ApiEndPoint.attendanceRecords);
+        final response = await client.get(
+          ApiEndPoint.attendanceRecords(userId, month),
+        );
         if (response.statusCode == 200 && response.data != null) {
           final jsonMap = Map<String, dynamic>.from(response.data);
           final attendanceData = AttendanceData.fromJson(jsonMap['data'] ?? {});
@@ -35,6 +46,73 @@ class AttendanceRepositoryImpl implements AttendanceRepository {
       throw ApiException(message);
     } catch (e) {
       log('error fetching attendance records $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<List<WorkScheduleItem>?> fetchWorkSchedules({
+    required int month,
+    required int year,
+  }) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(
+          ApiEndPoint.workSchedulesList(month: month, year: year),
+        );
+        if (response.statusCode == 200 && response.data != null) {
+          final jsonMap = Map<String, dynamic>.from(response.data);
+          final rawData = jsonMap['data'];
+          if (rawData is List) {
+            return rawData
+                .whereType<Map>()
+                .map((e) => WorkScheduleItem.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          }
+          return [];
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching work schedules $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
+  Future<List<HolidayRangeItem>?> fetchHolidays({required int year}) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(ApiEndPoint.holidaysList(year));
+        if (response.statusCode == 200 && response.data != null) {
+          final jsonMap = Map<String, dynamic>.from(response.data);
+          final rawData = jsonMap['data'];
+          if (rawData is List) {
+            return rawData
+                .whereType<Map>()
+                .map((e) => HolidayRangeItem.fromJson(Map<String, dynamic>.from(e)))
+                .toList();
+          }
+          return [];
+        }
+        throw ApiException(
+          response.data?['message'] ?? 'Unexpected error occurred',
+        );
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching holidays $e');
       throw ApiException(e.toString());
     }
   }

@@ -8,7 +8,15 @@ import 'package:code_setup/repository/data/attendance_repository_impl.dart';
 abstract class AttendanceRepository {
   factory AttendanceRepository() => AttendanceRepositoryImpl();
 
-  Future<AttendanceData?> fetchAttendanceRecord();
+  Future<AttendanceData?> fetchAttendanceRecord({
+    required int month,
+    required int year,
+  });
+  Future<List<WorkScheduleItem>?> fetchWorkSchedules({
+    required int month,
+    required int year,
+  });
+  Future<List<HolidayRangeItem>?> fetchHolidays({required int year});
 
   Future<List<AttendanceRequestItem>?> fetchMyAttendanceRequests();
 

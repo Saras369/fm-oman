@@ -34,6 +34,9 @@ class UpdateAttendanceRequestForm extends ConsumerWidget {
               fieldHeadingText: '${l10n?.fromDate ?? ''} *',
               hintText: l10n?.fromDate ?? '',
               readOnly: true,
+              validator: (value) => (value == null || value.isEmpty
+                  ? 'Please select date'
+                  : null),
             ),
             10.toVerticalSizedBox,
             KTextField(
@@ -77,10 +80,25 @@ class UpdateAttendanceRequestForm extends ConsumerWidget {
             ),
             10.toVerticalSizedBox,
             KTextField(
-              controller: stateController.reasonController,
-              fieldHeadingText: l10n?.reason ?? '',
-              hintText: l10n?.reason ?? '',
+              controller: stateController.commentsController,
+              fieldHeadingText: 'Comments *',
+              hintText: 'Enter comments',
               maxLines: 2,
+              validator: (value) => (value == null || value.trim().isEmpty
+                  ? 'Please enter comments'
+                  : null),
+            ),
+            10.toVerticalSizedBox,
+            KRadioGroup<String>(
+              title: '${l10n?.reason ?? 'Reason'} *',
+              isRequired: true,
+              options: const [
+                KRadioOption(value: 'Meeting', label: 'Meeting'),
+                KRadioOption(value: 'Early Checkout', label: 'Early Checkout'),
+                KRadioOption(value: 'Special Reason', label: 'Special Reason'),
+              ],
+              selectedValue: state.selectedReason,
+              onChanged: stateController.onSelectReason,
             ),
             50.toVerticalSizedBox,
             SizedBox(

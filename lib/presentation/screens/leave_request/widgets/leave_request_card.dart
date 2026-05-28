@@ -143,18 +143,11 @@ class _LeaveRequestsCardMobileState extends State<LeaveRequestsCardMobile> {
             _IconButton(
               icon: Icons.add,
               onTap: () {
-                KAppX.extendedRouter.dialog.showKDialog(
-                  insetPadding: EdgeInsets.symmetric(
-                    horizontal: 20.toAutoScaledWidth,
+                context.pushRoute(
+                  LeaveRequestCreateRoute(
+                    serviceId: params.serviceId,
+                    subServicesList: params.subServicesList,
                   ),
-
-                  builder: (context) {
-                    return LeaveFormWidget(
-                      params: params,
-                      // state: null,
-                      // stateController: null,
-                    );
-                  },
                 );
               },
             ),

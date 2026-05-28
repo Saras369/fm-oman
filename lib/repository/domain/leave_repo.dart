@@ -19,6 +19,7 @@ abstract class LeaveRepo {
   Future<LeaveCountModel?> fetchLeaveCount();
   Future<void> createLeaveRequest(Map<String, dynamic> data);
   Future<List<MyLeaveRequestItem>?> fetchMyLeaveRequests();
+  Future<List<MyLeaveRequestItem>?> fetchApprovedLeaveRequests();
   Future<LeaveRequestDetailsModel?> fetchLeaveRequestDetailsById(int id);
   Future<void> approveOrRejectLeaveRequest(Map<String, dynamic> data);
   Future<List<MyLeaveRequestItem>?> fetchLeaveApprovalRequests({
@@ -44,6 +45,10 @@ abstract class LeaveRepo {
   Future<List<LeaveUserBalanceItem>?> fetchLeaveUserBalances(
     int userId, {
     int? year,
+  });
+  Future<int> fetchLeaveBalanceByType({
+    required int userId,
+    required int leaveTypeId,
   });
   Future<List<UnpaidLeaveCategoryItem>?> fetchUnpaidLeaveCategories();
   Future<List<MourningLeaveRelationItem>?> fetchMourningLeaveRelation();

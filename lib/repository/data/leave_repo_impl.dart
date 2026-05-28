@@ -148,6 +148,37 @@ class LeaveRepoImpl implements LeaveRepo {
   }
 
   @override
+  Future<List<MyLeaveRequestItem>?> fetchApprovedLeaveRequests() async {
+    final user = KAppX.globalProvider.read(userProvider);
+    final userId = user?.userId;
+    if (userId == null) return [];
+
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(
+          ApiEndPoint.leaveApprovedRequests(userId),
+        );
+        if (response.statusCode == 200 && response.data != null) {
+          final jsonMap = Map<String, dynamic>.from(response.data);
+          return MyLeaveRequestsModel.fromJson(jsonMap).data;
+        } else {
+          final errorMessage =
+              response.data?['message'] ?? 'Unexpected error occurred';
+          throw ApiException(errorMessage);
+        }
+      }
+      return null;
+    } on DioException catch (error) {
+      final message = error.response?.data['message'] ?? error.message;
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching approved leave requests $e');
+      throw ApiException(e.toString());
+    }
+  }
+
+  @override
   Future<LeaveRequestDetailsModel?> fetchLeaveRequestDetailsById(int id) async {
     try {
       final client = await KAppX.network.secureClient();
@@ -406,6 +437,70 @@ class LeaveRepoImpl implements LeaveRepo {
       log('error fetching leave user balances $e');
       throw ApiException(e.toString());
     }
+  }
+
+  @override
+  Future<int> fetchLeaveBalanceByType({
+    required int userId,
+    required int leaveTypeId,
+  }) async {
+    try {
+      final client = await KAppX.network.secureClient();
+      if (client != null) {
+        final response = await client.get(
+          ApiEndPoint.leaveBalanceByUserAndType(userId, leaveTypeId),
+        );
+        final body = response.data;
+        if (response.statusCode == 200 && body != null) {
+          final jsonMap = body is Map<String, dynamic>
+              ? body
+              : body is Map
+              ? Map<String, dynamic>.from(body)
+              : <String, dynamic>{};
+          final status = jsonMap['status']?.toString().toLowerCase();
+          if (status == 'failed') {
+            throw ApiException(
+              jsonMap['message']?.toString() ??
+                  'Leave balance not found for selected leave type',
+            );
+          }
+          final rawData = jsonMap['data'];
+          if (rawData is Map<String, dynamic>) {
+            final balance = _readInt(rawData['balance']);
+            final totalBalance = _readInt(rawData['total_balance']);
+            return balance ?? totalBalance ?? 0;
+          }
+          if (rawData is Map) {
+            final map = Map<String, dynamic>.from(rawData);
+            final balance = _readInt(map['balance']);
+            final totalBalance = _readInt(map['total_balance']);
+            return balance ?? totalBalance ?? 0;
+          }
+          return 0;
+        }
+        throw ApiException(
+          body?['message']?.toString() ?? 'Unexpected error occurred',
+        );
+      }
+      return 0;
+    } on DioException catch (error) {
+      final message = _extractApiMessage(
+        error.response?.data,
+        fallback: error.message ?? 'Unexpected error occurred',
+      );
+      throw ApiException(message);
+    } catch (e) {
+      log('error fetching leave balance by type $e');
+      if (e is ApiException) rethrow;
+      throw ApiException(e.toString());
+    }
+  }
+
+  int? _readInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
   @override

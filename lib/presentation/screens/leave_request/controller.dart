@@ -31,6 +31,7 @@ class DynamicLeaveFormState {
   final String startDate, endDate;
   final List<String> selectedFileUrl;
   final List<MyLeaveRequestItem> myLeaveRequests;
+  final List<MyLeaveRequestItem> approvedLeaveRequests;
   final List<MyLeaveRequestItem> actionItems;
   final String leaveFor;
   final List<UnpaidLeaveCategoryItem> unpaidLeaveCategories;
@@ -50,6 +51,8 @@ class DynamicLeaveFormState {
   final int selectedTrendYear;
   final int selectedBalanceYear;
   final List<LeaveBalanceData> leaveBalances;
+  final int availableLeaveBalance;
+  final MyLeaveRequestItem selectedApprovedLeave;
 
   DynamicLeaveFormState({
     required this.selectedLeaveType,
@@ -61,6 +64,7 @@ class DynamicLeaveFormState {
     required this.endDate,
     required this.selectedFileUrl,
     required this.myLeaveRequests,
+    required this.approvedLeaveRequests,
     required this.actionItems,
     required this.leaveFor,
     required this.unpaidLeaveCategories,
@@ -80,6 +84,8 @@ class DynamicLeaveFormState {
     required this.selectedTrendYear,
     required this.selectedBalanceYear,
     required this.leaveBalances,
+    required this.availableLeaveBalance,
+    required this.selectedApprovedLeave,
   });
 
   DynamicLeaveFormState copyWith({
@@ -92,6 +98,7 @@ class DynamicLeaveFormState {
     endDate,
     List<String>? selectedFileUrl,
     List<MyLeaveRequestItem>? myLeaveRequests,
+    List<MyLeaveRequestItem>? approvedLeaveRequests,
     List<MyLeaveRequestItem>? actionItems,
     String? leaveFor,
     List<UnpaidLeaveCategoryItem>? unpaidLeaveCategories,
@@ -111,6 +118,8 @@ class DynamicLeaveFormState {
     int? selectedTrendYear,
     int? selectedBalanceYear,
     List<LeaveBalanceData>? leaveBalances,
+    int? availableLeaveBalance,
+    MyLeaveRequestItem? selectedApprovedLeave,
   }) {
     return DynamicLeaveFormState(
       selectedLeaveType: selectedLeaveType ?? this.selectedLeaveType,
@@ -122,6 +131,8 @@ class DynamicLeaveFormState {
       endDate: endDate ?? this.endDate,
       selectedFileUrl: selectedFileUrl ?? this.selectedFileUrl,
       myLeaveRequests: myLeaveRequests ?? this.myLeaveRequests,
+      approvedLeaveRequests:
+          approvedLeaveRequests ?? this.approvedLeaveRequests,
       actionItems: actionItems ?? this.actionItems,
       leaveFor: leaveFor ?? this.leaveFor,
       unpaidLeaveCategories:
@@ -147,6 +158,9 @@ class DynamicLeaveFormState {
       selectedTrendYear: selectedTrendYear ?? this.selectedTrendYear,
       selectedBalanceYear: selectedBalanceYear ?? this.selectedBalanceYear,
       leaveBalances: leaveBalances ?? this.leaveBalances,
+      availableLeaveBalance: availableLeaveBalance ?? this.availableLeaveBalance,
+      selectedApprovedLeave:
+          selectedApprovedLeave ?? this.selectedApprovedLeave,
     );
   }
 }
@@ -202,6 +216,7 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
           endDate: '',
           selectedFileUrl: [],
           myLeaveRequests: [],
+          approvedLeaveRequests: [],
           actionItems: [],
           leaveFor: 'Self',
           unpaidLeaveCategories: [],
@@ -221,6 +236,8 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
           selectedTrendYear: DateTime.now().year,
           selectedBalanceYear: DateTime.now().year,
           leaveBalances: [],
+          availableLeaveBalance: 0,
+          selectedApprovedLeave: MyLeaveRequestItem(),
         ),
       );
   final formKey = GlobalKey<FormState>();
@@ -240,6 +257,10 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
   late TextEditingController contactNumberDuringLeaveController;
   late TextEditingController addressDuringLeaveController;
   late TextEditingController notesController;
+  late TextEditingController reasonForCancellationController;
+  late TextEditingController selectDurationController;
+  late TextEditingController employeeNameController;
+  late TextEditingController departmentController;
 
   // List<LeaveField> get allFields {
   //   return [
@@ -413,6 +434,27 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
     if (state.selectedLeaveType.id == null) {
       return false;
     }
+    if (isCancellationLeaveType(state.selectedLeaveType)) {
+      if (state.selectedApprovedLeave.id == null) {
+        ShowFlutterToast().showFlutterToastFailure(
+          'Please select an approved leave to cancel.',
+        );
+        return false;
+      }
+      if (reasonForCancellationController.text.trim().isEmpty) {
+        ShowFlutterToast().showFlutterToastFailure(
+          'Please enter reason for cancellation.',
+        );
+        return false;
+      }
+      return true;
+    }
+    if (state.availableLeaveBalance <= 0) {
+      ShowFlutterToast().showFlutterToastFailure(
+        'Leave balance is 0. Leave cannot be applied.',
+      );
+      return false;
+    }
     // if(state.leaveFor == 'Behalf of' && )
     // to do: user need to be selected from dropdown
     return true;
@@ -430,12 +472,18 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
       selectedLeaveType: LeaveTypeItem(),
       startDate: '',
       endDate: '',
+      availableLeaveBalance: 0,
+      selectedApprovedLeave: MyLeaveRequestItem(),
     );
     startDateController.clear();
     endDateController.clear();
     contactNumberDuringLeaveController.clear();
     addressDuringLeaveController.clear();
     notesController.clear();
+    reasonForCancellationController.clear();
+    selectDurationController.clear();
+    employeeNameController.clear();
+    departmentController.clear();
     KAppX.router.pop();
   }
 
@@ -490,6 +538,21 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
     }
     if (state.selectedLeaveType.id == 2 || state.selectedLeaveType.id == 7) {
       data["leave_for"] = state.leaveFor;
+    }
+
+    if (isCancellationLeaveType(state.selectedLeaveType)) {
+      final approved = state.selectedApprovedLeave;
+      data['approved_leave_request_id'] = approved.id?.toString();
+      data['approved_leave_type'] = approved.leaveType?.id?.toString();
+      data['approved_leave_type_name'] = approved.leaveType?.name;
+      data['leave_duration'] = approved.leaveDuration?.toString();
+      data['reason_for_cancellation'] =
+          reasonForCancellationController.text.trim();
+      data['notes'] = notesController.text.trim().isEmpty
+          ? reasonForCancellationController.text.trim()
+          : notesController.text.trim();
+      data['department'] =
+          approved.department ?? departmentController.text.trim();
     }
 
     return data;
@@ -774,8 +837,112 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
     ];
   }
 
-  void onSelectLeaveType(LeaveTypeItem leaveType) {
-    state = state.copyWith(selectedLeaveType: leaveType);
+  Future<void> onSelectLeaveType(LeaveTypeItem leaveType) async {
+    final isCancellation = isCancellationLeaveType(leaveType);
+    state = state.copyWith(
+      selectedLeaveType: leaveType,
+      availableLeaveBalance: 0,
+      selectedApprovedLeave: MyLeaveRequestItem(),
+      startDate: '',
+      endDate: '',
+    );
+    startDateController.clear();
+    endDateController.clear();
+    reasonForCancellationController.clear();
+    selectDurationController.clear();
+
+    if (isCancellation) {
+      _populateEmployeeFieldsFromUser();
+      await fetchApprovedLeaveRequests();
+      return;
+    }
+
+    employeeNameController.clear();
+    departmentController.clear();
+    await fetchLeaveBalanceByType(leaveType.id);
+  }
+
+  bool isCancellationLeaveType(LeaveTypeItem leaveType) {
+    final name = (leaveType.name ?? '').trim().toLowerCase();
+    return name == 'cancellation' || name.contains('cancellation');
+  }
+
+  List<MyLeaveRequestItem> get approvedLeavesForCancellation {
+    return state.approvedLeaveRequests.where(_canCancelLeave).toList();
+  }
+
+  bool _canCancelLeave(MyLeaveRequestItem item) {
+    final typeName = (item.leaveType?.name ?? '').trim().toLowerCase();
+    if (typeName.contains('cancellation')) return false;
+    final status = (item.status ?? '').trim().toLowerCase();
+    if (status.contains('cancel')) return false;
+    return item.id != null;
+  }
+
+  String approvedLeaveDropdownLabel(MyLeaveRequestItem item) {
+    final typeName = item.leaveType?.name ?? 'Leave';
+    final start = formatLeaveDateForDisplay(item.leaveStartDate);
+    final end = formatLeaveDateForDisplay(item.leaveEndDate);
+    if (start.isNotEmpty && end.isNotEmpty) {
+      return '$typeName ($start - $end)';
+    }
+    return '$typeName (#${item.id ?? ''})';
+  }
+
+  String formatLeaveDateForDisplay(String? apiDate) {
+    if (apiDate == null || apiDate.isEmpty) return '';
+    final parsed = DateTime.tryParse(apiDate);
+    if (parsed == null) return apiDate;
+    return DateFormat('dd/MM/yyyy').format(parsed);
+  }
+
+  void _populateEmployeeFieldsFromUser() {
+    final user = state.userData;
+    final authUser = KAppX.globalProvider.read(userProvider);
+    employeeNameController.text =
+        user.employeeName ?? authUser?.employeeName ?? '';
+    departmentController.text =
+        user.department?.departmentName ??
+        authUser?.departmentName ??
+        '';
+  }
+
+  void onSelectApprovedLeave(MyLeaveRequestItem leave) {
+    state = state.copyWith(
+      selectedApprovedLeave: leave,
+      startDate: leave.leaveStartDate ?? '',
+      endDate: leave.leaveEndDate ?? '',
+    );
+    startDateController.text = formatLeaveDateForDisplay(leave.leaveStartDate);
+    endDateController.text = formatLeaveDateForDisplay(leave.leaveEndDate);
+    selectDurationController.text = '${leave.leaveDuration ?? 0}';
+    employeeNameController.text =
+        leave.user?.employeeName ?? state.userData.employeeName ?? '';
+    departmentController.text =
+        leave.department ?? state.userData.department?.departmentName ?? '';
+  }
+
+  Future<void> fetchLeaveBalanceByType(int? leaveTypeId) async {
+    final userId = KAppX.globalProvider.read(userProvider)?.userId;
+    if (userId == null || leaveTypeId == null) {
+      state = state.copyWith(availableLeaveBalance: 0);
+      return;
+    }
+    try {
+      final balance = await _leaveRepo.fetchLeaveBalanceByType(
+        userId: userId,
+        leaveTypeId: leaveTypeId,
+      );
+      state = state.copyWith(availableLeaveBalance: balance);
+    } on ApiException catch (apiError) {
+      state = state.copyWith(availableLeaveBalance: 0);
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (_) {
+      state = state.copyWith(availableLeaveBalance: 0);
+      ShowFlutterToast().showFlutterToastFailure(
+        'Leave balance is unavailable. Leave cannot be applied.',
+      );
+    }
   }
 
   void onUploadFileSuccess(String url) {
@@ -801,6 +968,19 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
       ShowFlutterToast().showFlutterToastFailure(apiError.message);
     } catch (e) {
       log('error fetching leave requests $e');
+    }
+  }
+
+  Future<void> fetchApprovedLeaveRequests() async {
+    try {
+      final approvedLeaves = await _leaveRepo.fetchApprovedLeaveRequests();
+      if (approvedLeaves != null) {
+        state = state.copyWith(approvedLeaveRequests: approvedLeaves);
+      }
+    } on ApiException catch (apiError) {
+      ShowFlutterToast().showFlutterToastFailure(apiError.message);
+    } catch (e) {
+      log('error fetching approved leave requests $e');
     }
   }
 
@@ -886,6 +1066,10 @@ class DynamicLeaveFormController extends StateNotifier<DynamicLeaveFormState> {
     contactNumberDuringLeaveController.dispose();
     addressDuringLeaveController.dispose();
     notesController.dispose();
+    reasonForCancellationController.dispose();
+    selectDurationController.dispose();
+    employeeNameController.dispose();
+    departmentController.dispose();
     super.dispose();
   }
 }
@@ -904,6 +1088,10 @@ final dynamicLeaveFormControllerProvider = StateNotifierProvider.autoDispose
       controller.contactNumberDuringLeaveController = TextEditingController();
       controller.addressDuringLeaveController = TextEditingController();
       controller.notesController = TextEditingController();
+      controller.reasonForCancellationController = TextEditingController();
+      controller.selectDurationController = TextEditingController();
+      controller.employeeNameController = TextEditingController();
+      controller.departmentController = TextEditingController();
 
       // Call your init logic or async method here.
       // For example, immediately fetch user data:

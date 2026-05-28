@@ -127,3 +127,33 @@ class LeaveRequestScreen extends ConsumerWidget {
     );
   }
 }
+
+@RoutePage()
+class LeaveRequestCreateScreen extends ConsumerWidget {
+  final List<SubServices> subServicesList;
+  final int serviceId;
+  late final DynamicLeaveFormParams params;
+
+  LeaveRequestCreateScreen({
+    super.key,
+    required this.subServicesList,
+    required this.serviceId,
+  }) {
+    params = DynamicLeaveFormParams(
+      subServicesList: subServicesList,
+      serviceId: serviceId,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return KScaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12.toAutoScaledWidth),
+          child: LeaveFormWidget(params: params),
+        ),
+      ),
+    );
+  }
+}

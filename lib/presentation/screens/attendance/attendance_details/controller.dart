@@ -154,6 +154,7 @@ class _AttendanceDetailsController
       commentsList.add(
         CommentEntryModel(
           userName: comment.user?.employeeName ?? '',
+          roleAuthority: _resolveRoleAuthority(comment),
           userInitials: _getInitials(comment.user?.employeeName ?? ''),
           isSelf: isSelf,
           message: comment.message ?? '',
@@ -163,6 +164,29 @@ class _AttendanceDetailsController
       );
     }
     return commentsList.reversed.toList();
+  }
+
+  String _resolveRoleAuthority(ChatMessage comment) {
+    final roleId = comment.roleId;
+    if (roleId == 1) return 'Admin';
+    if (roleId == 2) return 'Employee';
+
+    final requestUserId = state.requestDetail?.userId;
+    if (requestUserId != null && comment.userId == requestUserId) {
+      return 'Employee';
+    }
+
+    final approval = (state.requestDetail?.approvalDetails ?? []).firstWhere(
+      (a) => a.approverUserId == comment.userId,
+      orElse: () => ApprovalDetail(),
+    );
+    final approverRole = approval.approverRole?.name?.trim();
+    if (approverRole != null && approverRole.isNotEmpty) return approverRole;
+
+    final designation = comment.user?.designation?.name?.trim();
+    if (designation != null && designation.isNotEmpty) return designation;
+
+    return 'N/A';
   }
 
   String _getInitials(String name) {

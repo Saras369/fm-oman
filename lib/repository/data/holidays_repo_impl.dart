@@ -9,11 +9,11 @@ import 'package:dio/dio.dart';
 
 class HolidaysRepoImpl implements HolidaysRepo {
   @override
-  Future<HolidayModel?> fetchHolidayList() async {
+  Future<HolidayModel?> fetchHolidayList({required int year}) async {
     try {
       final client = await KAppX.network.secureClient();
       if (client != null) {
-        final response = await client.get(ApiEndPoint.holidaysList);
+        final response = await client.get(ApiEndPoint.holidaysList(year));
         if (response.statusCode == 200 && response.data != null) {
           final jsonMap = Map<String, dynamic>.from(response.data);
           // Construct AttendanceData from JSON

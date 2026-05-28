@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 class CommentEntryModel {
   final String userName;
+  final String? roleAuthority;
   final String userInitials;
   final bool isSelf;
   final String message;
@@ -12,6 +13,7 @@ class CommentEntryModel {
   final String time;
   CommentEntryModel({
     required this.userName,
+    this.roleAuthority,
     required this.userInitials,
     required this.isSelf,
     required this.message,
@@ -128,7 +130,7 @@ class CommentEntry extends StatelessWidget {
                   children: [
                     Text("Role / Authority", style: labelStyle),
                     const SizedBox(height: 4),
-                    Text(data.userName, style: valueStyle),
+                    Text(data.roleAuthority ?? data.userName, style: valueStyle),
                   ],
                 ),
               ),

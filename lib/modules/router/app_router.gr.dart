@@ -930,6 +930,77 @@ class LeaveRequestDetailsRouteArgs {
 }
 
 /// generated route for
+/// [_i19.LeaveRequestCreateScreen]
+class LeaveRequestCreateRoute
+    extends _i39.PageRouteInfo<LeaveRequestCreateRouteArgs> {
+  LeaveRequestCreateRoute({
+    _i40.Key? key,
+    required List<_i41.SubServices> subServicesList,
+    required int serviceId,
+    List<_i39.PageRouteInfo>? children,
+  }) : super(
+         LeaveRequestCreateRoute.name,
+         args: LeaveRequestCreateRouteArgs(
+           key: key,
+           subServicesList: subServicesList,
+           serviceId: serviceId,
+         ),
+         initialChildren: children,
+       );
+
+  static const String name = 'LeaveRequestCreateRoute';
+
+  static _i39.PageInfo page = _i39.PageInfo(
+    name,
+    builder: (data) {
+      final args = data.argsAs<LeaveRequestCreateRouteArgs>();
+      return _i19.LeaveRequestCreateScreen(
+        key: args.key,
+        subServicesList: args.subServicesList,
+        serviceId: args.serviceId,
+      );
+    },
+  );
+}
+
+class LeaveRequestCreateRouteArgs {
+  const LeaveRequestCreateRouteArgs({
+    this.key,
+    required this.subServicesList,
+    required this.serviceId,
+  });
+
+  final _i40.Key? key;
+
+  final List<_i41.SubServices> subServicesList;
+
+  final int serviceId;
+
+  @override
+  String toString() {
+    return 'LeaveRequestCreateRouteArgs{key: $key, subServicesList: $subServicesList, serviceId: $serviceId}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! LeaveRequestCreateRouteArgs) return false;
+    return key == other.key &&
+        const _i42.ListEquality<_i41.SubServices>().equals(
+          subServicesList,
+          other.subServicesList,
+        ) &&
+        serviceId == other.serviceId;
+  }
+
+  @override
+  int get hashCode =>
+      key.hashCode ^
+      const _i42.ListEquality<_i41.SubServices>().hash(subServicesList) ^
+      serviceId.hashCode;
+}
+
+/// generated route for
 /// [_i19.LeaveRequestScreen]
 class LeaveRequestRoute extends _i39.PageRouteInfo<LeaveRequestRouteArgs> {
   LeaveRequestRoute({

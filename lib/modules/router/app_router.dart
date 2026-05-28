@@ -28,6 +28,10 @@ class AppRouter extends RootStackRouter {
     //   path: RouteNames.leaveRequestScreen,
     // ),
     AutoRoute(
+      page: LeaveRequestCreateRoute.page,
+      path: RouteNames.leaveRequestCreateScreen,
+    ),
+    AutoRoute(
       page: LeaveRequestDetailsRoute.page,
       path: RouteNames.leaveRequestDetailsScreen,
     ),
@@ -86,6 +90,7 @@ class AppRouter extends RootStackRouter {
       children: [
         AutoRoute(page: UpdateAttendanceRecordRoute.page),
         AutoRoute(page: LeaveRequestRoute.page),
+        AutoRoute(page: LeaveRequestCreateRoute.page),
         AutoRoute(page: StayAfterWorkingHoursRoute.page),
       ],
     ),

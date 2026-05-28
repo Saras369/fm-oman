@@ -3,7 +3,7 @@ class ApiEndPoint {
   static String getUserById(String userId) => '/v1/user-service/user/$userId';
   static String userRoles(int userId) =>
       '/v1/user-service/user/$userId/roles-services';
-  static const String holidaysList = "/v1/hr-service/holidays/2025";
+  static String holidaysList(int year) => "/v1/hr-service/holidays/$year";
   static const String usersList =
       "/v1/user-service/users"; // using for on behalf of requests
   static String allServices(
@@ -96,6 +96,8 @@ class ApiEndPoint {
   /// leave requests
   static String leaveMyRequests(int id) =>
       '/v1/hr-service/leaves/leaverequests/$id';
+  static String leaveApprovedRequests(int userId) =>
+      '/v1/hr-service/leaves/approved/leaverequests/$userId';
   static String createLeaveRequest = '/v1/hr-service/leaves/addrequest';
   static String uploadFile = '/v1/user-service/upload';
   static String unpaidLeavecategories =
@@ -119,10 +121,14 @@ class ApiEndPoint {
       '/v1/hr-service/leaves/request/$id';
   static String leaveUserBalances(int userId) =>
       '/v1/hr-service/leaves/user-balances/$userId';
+  static String leaveBalanceByUserAndType(int userId, int leaveTypeId) =>
+      '/v1/hr-service/leaves/leave-balance/$userId/$leaveTypeId';
 
   /// Attendance
   static String myAttendanceReuqests =
       '/v1/hr-service/update-attendance/requests';
+  static String workSchedulesList({required int month, required int year}) =>
+      '/v1/user-service/work-schedules/list?month=$month&year=$year';
   static const String attendanceApprovalRequests =
       '/v1/hr-service/update-attendance/requests/for-approval';
   static String updateAttendanceRequestById(int id) =>
@@ -133,7 +139,8 @@ class ApiEndPoint {
       '/v1/hr-service/update-attendance/request/$id/approve';
   static String updateAttendanceRequestReject(int id) =>
       '/v1/hr-service/update-attendance/request/$id/reject';
-  static const String attendanceRecords = "/v1/hr-service/Attendance/106/09";
+  static String attendanceRecords(int userId, int month) =>
+      '/v1/hr-service/Attendance/$userId/$month';
   static const String createUpdateAttendanceRequest =
       "/v1/hr-service/update-attendance/request";
   static const String updateAttendanceKPIStats =

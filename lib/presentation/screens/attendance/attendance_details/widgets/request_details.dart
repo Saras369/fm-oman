@@ -38,6 +38,9 @@ class _RequestDetailsAttendanceServices extends StatelessWidget {
         ? requestItem!.createdAt!.formattedDate
         : 'N/A';
 
+    final serviceName = requestItem?.service?.name?.trim();
+    final subServiceName = requestItem?.subService?.subServiceName?.trim();
+
     final statusInfoMap = {
       'Assigned To': assignedToName,
       'Status': requestItem?.status ?? 'N/A',
@@ -46,10 +49,13 @@ class _RequestDetailsAttendanceServices extends StatelessWidget {
     };
 
     final requestInfoMap = <String, dynamic>{
-      'Request For': requestItem?.reason ?? 'Update Attendance',
-      'Service Type': requestItem?.service?.name ?? 'HR Services',
-      'Sub Service Type':
-          requestItem?.subService?.subServiceName ?? 'Update Attendance',
+      'Request For': 'Self',
+      'Service Type': (serviceName == null || serviceName.isEmpty)
+          ? 'HR Services'
+          : serviceName,
+      'Sub Service Type': (subServiceName == null || subServiceName.isEmpty)
+          ? 'Update Attendance'
+          : subServiceName,
       'Department': requestItem?.reqDepartment?.departmentName ?? 'N/A',
       'Section': requestItem?.reqSection?.sectionName ?? 'N/A',
       'From Date': requestItem?.fromDate ?? 'N/A',

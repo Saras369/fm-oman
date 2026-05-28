@@ -224,3 +224,32 @@ class AttendanceData {
     'total_days': totalDays,
   };
 }
+
+class WorkScheduleItem {
+  final String? fromDate;
+  final String? toDate;
+
+  WorkScheduleItem({this.fromDate, this.toDate});
+
+  factory WorkScheduleItem.fromJson(Map<String, dynamic> json) {
+    return WorkScheduleItem(
+      fromDate: json['from_date'] as String?,
+      toDate: json['to_date'] as String?,
+    );
+  }
+}
+
+class HolidayRangeItem {
+  final String? fromDate;
+  final String? toDate;
+
+  HolidayRangeItem({this.fromDate, this.toDate});
+
+  factory HolidayRangeItem.fromJson(Map<String, dynamic> json) {
+    return HolidayRangeItem(
+      fromDate:
+          (json['holiday_from_date'] ?? json['holiday_date'])?.toString(),
+      toDate: (json['holiday_to_date'] ?? json['holiday_date'])?.toString(),
+    );
+  }
+}
